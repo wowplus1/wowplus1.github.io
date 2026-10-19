@@ -40,6 +40,9 @@ jobs:
             git commit -m "딜 기록 갱신"
             git push
           fi
+      - name: IndexNow 목록 (바뀐 페이지)
+        if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
+        run: node indexnow.js prepare _site
       - if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
         uses: actions/configure-pages@v5
       - if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
@@ -49,3 +52,6 @@ jobs:
       - id: deploy
         if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
         uses: actions/deploy-pages@v4
+      - name: IndexNow 보내기
+        if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
+        run: node indexnow.js send

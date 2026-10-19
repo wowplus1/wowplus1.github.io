@@ -3,3 +3,4 @@ _site/
 node_modules/
 bootstrap.js
 serve.js
+indexnow-urls.txt
