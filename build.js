@@ -234,6 +234,7 @@ const liveScript = known => `<script>
   var URL_ = 'https://hotdeal-feed-default-rtdb.asia-southeast1.firebasedatabase.app/feed/items.json?orderBy=%22sentMs%22&limitToLast=20';
   var KNOWN = new Set(${JSON.stringify(known)});
   var box = document.getElementById('recent'); if (!box || !window.EventSource) return;
+  var TOP = ${JSON.stringify(Date.parse((deals[0] || {}).sentAt) || 0)};
   var have = new Set([].map.call(box.querySelectorAll('[data-uid]'), function (e) { return e.getAttribute('data-uid'); }));
   function won(n) { return Number(n) > 0 ? Number(n).toLocaleString('ko-KR') + '원' : ''; }
   function when(iso) { var m = String(iso).match(/-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/); return m ? (+m[1]) + '/' + (+m[2]) + ' ' + m[3] + ':' + m[4] : ''; }
@@ -255,7 +256,7 @@ const liveScript = known => `<script>
   function apply(data) {
     if (!data) return;
     var list = Array.isArray(data) ? data : (data.uid ? [data] : Object.keys(data).map(function (k) { return data[k]; }));
-    list = list.filter(function (d) { return d && d.uid && d.title && d.mall !== '토스쇼핑' && !/toss\\.(im|shopping)/.test(d.link || '') && !have.has(String(d.uid)); })
+    list = list.filter(function (d) { return d && d.uid && d.title && d.mall !== '토스쇼핑' && !/toss\\.(im|shopping)/.test(d.link || '') && !have.has(String(d.uid)) && (d.sentMs || 0) > TOP; })
       .sort(function (a, b) { return (a.sentMs || 0) - (b.sentMs || 0); });
     list.forEach(function (d) { have.add(String(d.uid)); box.insertBefore(card(d), box.firstChild); });
     var tag = document.getElementById('livetag'); if (tag && list.length) tag.textContent = '실시간 · 새 딜 ' + list.length + '건';
@@ -309,6 +310,10 @@ ${cmp}
 <div class="stack">${buyLink(d)}</div>
 </div></div>
 <section class="about"><h2>이 딜에 대해</h2><p>${about(d, kws)}</p></section>
+${d.earlier && d.earlier.length ? `<h2>이 상품, 전에 보낸 가격</h2><div class="tbl"><table><thead><tr><th>보낸 시각</th><th class="r">가격</th><th class="r">다른 곳</th></tr></thead><tbody>
+<tr class="low"><td>${dateTime(d.sentAt)} (이번)</td><td class="r">${won(d.price)}</td><td class="r">${won(d.baseline)}</td></tr>
+${d.earlier.map(e => `<tr><td>${dateTime(e.sentAt)}${e.web ? ' · 사이트' : ''}</td><td class="r">${won(e.price)}</td><td class="r">${won(e.baseline)}</td></tr>`).join('')}
+</tbody></table></div><p class="note">같은 상품도 보낼 때마다 가격이 달라요. 지금 가격은 판매처에서 확인하세요.</p>` : ''}
 ${join}
 ${kws.length ? `<h2>같은 품목 가격 기록</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}건</em></a></li>`).join('')}</ul>` : ''}
 ${related.length ? `<h2>비슷한 딜</h2>${grid(related)}` : ''}
