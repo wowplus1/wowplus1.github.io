@@ -168,9 +168,9 @@ const ctaBtn = `<a class="cta" href="${KAKAO}" target="_blank" rel="noopener">${
 const assure = '<p class="assure"><span>무료</span><span>알림 꺼 둬도 OK</span><span>개인정보 요구 없음</span><span>언제든 퇴장</span></p>';
 const join = `<section class="join"><h3>이런 딜, 하루 15~20건 카톡으로 갑니다</h3><p>싸게 뜬 생필품을 다른 판매처 가격과 비교해서, 괜찮을 때만 바로 보내드려요.</p>${ctaBtn}${assure}</section>`;
 
-const page = ({ title, desc, canon, body, crumbs, img }) => `<!doctype html>
+const page = ({ title, desc, canon, body, crumbs, img, noindex }) => `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>${esc(title)}</title><meta name="description" content="${esc(desc)}"><link rel="canonical" href="${BASE}${canon}">
+<title>${esc(title)}</title>${noindex ? '<meta name="robots" content="noindex">' : ''}<meta name="description" content="${esc(desc)}"><link rel="canonical" href="${BASE}${canon}">
 <meta name="theme-color" content="#F7F4EE"><link rel="icon" href="/logo.png"><link rel="apple-touch-icon" href="/logo.png">
 <meta property="og:site_name" content="${SITE}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:type" content="website"><meta property="og:url" content="${BASE}${canon}"><meta property="og:image" content="${esc(img || BASE + '/logo.png')}">
@@ -221,7 +221,7 @@ ${xy.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${i === iLow ? 5 : 3}" 
 
 // 홈의 「최근 보낸 딜」 을 실시간으로 채운다 (lp/02 와 같은 파이어베이스 경로).
 // 정적 페이지는 10분마다 다시 만들어지지만, 사람이 보는 목록은 카톡에 보내는 순간 바로 뜨게 한다.
-// 새 딜의 상세 페이지가 아직 안 만들어졌으면 hotdeal.best 상세로 보낸다.
+// 새 딜의 상세 페이지가 아직 안 만들어졌으면 /new/ (파이어베이스에서 바로 그리는 상세) 로 보낸다.
 const liveScript = known => `<script>
 (function () {
   var URL_ = 'https://hotdeal-feed-default-rtdb.asia-southeast1.firebasedatabase.app/feed/items.json?orderBy=%22sentMs%22&limitToLast=20';
@@ -234,7 +234,7 @@ const liveScript = known => `<script>
   function card(d) {
     var li = el('li'); li.setAttribute('data-uid', d.uid);
     var a = el('a', 'card fresh');
-    a.href = KNOWN.has(String(d.uid)) ? '/deal/' + encodeURIComponent(d.uid) + '/' : 'https://hotdeal.best/' + encodeURIComponent(d.uid) + '?utm_source=dealsite';
+    a.href = KNOWN.has(String(d.uid)) ? '/deal/' + encodeURIComponent(d.uid) + '/' : '/new/?id=' + encodeURIComponent(d.uid);
     var ph = el('span', 'ph'); if (d.image) { var im = el('img'); im.src = d.image; im.alt = ''; im.referrerPolicy = 'no-referrer'; ph.appendChild(im); }
     var b = el('span', 'body'), m = el('span', 'm');
     m.appendChild(el('span', 'mall', d.mall || '')); m.appendChild(document.createTextNode(when(d.sentAt) + ' 보냄'));
@@ -348,6 +348,63 @@ ${ctaBtn}${assure}
 <h2>쇼핑몰별</h2><ul class="chips">${MALLS.map(m => `<li><a href="${url('mall', m)}">${esc(m)} <em>${byMall[m].length}</em></a></li>`).join('')}</ul>
 ${join}${liveScript(deals.map(d => String(d.uid)))}` }));
 add('/', kst(deals[0].sentAt).ymd);
+
+// 방금 들어온 딜의 상세. 정적 페이지가 만들어지기 전(최대 10~20분)에만 쓴다.
+// 파이어베이스 feed/items/<uid> 를 읽어 딜 상세와 같은 모양으로 그린다. 정적 페이지가 생겼으면 그리로 넘긴다.
+// 검색엔진에는 안 보인다(noindex) — 같은 딜의 정적 페이지가 곧 생기기 때문이다.
+write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 핫딜', canon: '/new/', noindex: true,
+  body: `<div id="nd"><p class="lead">딜을 불러오는 중입니다…</p></div>${join}<script>
+(function () {
+  var DISC = ${JSON.stringify(DISCLOSURE)}, DEF = ${JSON.stringify(disclosureFor(''))};
+  var id = new URLSearchParams(location.search).get('id') || '';
+  var box = document.getElementById('nd');
+  if (!/^\\d+$/.test(id)) { box.innerHTML = '<p class="lead">딜 번호가 없습니다. <a href="/">홈으로</a></p>'; return; }
+  fetch('/deal/' + id + '/', { method: 'HEAD' }).then(function (r) { if (r.ok) location.replace('/deal/' + id + '/'); }).catch(function () {});
+  function won(n) { return Number(n) > 0 ? Number(n).toLocaleString('ko-KR') + '원' : ''; }
+  function ko(iso) { var m = String(iso).match(/(\\d{4})-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/); return m ? m[1] + '년 ' + (+m[2]) + '월 ' + (+m[3]) + '일 ' + m[4] + ':' + m[5] : ''; }
+  function short(iso) { var m = String(iso).match(/-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/); return m ? (+m[1]) + '/' + (+m[2]) + ' ' + m[3] + ':' + m[4] : ''; }
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function draw(d) {
+    if (!d || !d.uid || d.mall === '토스쇼핑' || /toss\\.(im|shopping)/.test(d.link || '')) { box.innerHTML = '<p class="lead">이 딜은 여기서 보여 드릴 수 없어요. <a href="/">홈으로</a></p>'; return; }
+    document.title = d.title + ' ' + won(d.price) + ' 핫딜 - ${SITE}';
+    box.innerHTML = '';
+    var wrap = el('div', 'deal'), shot = el('div', 'shot');
+    if (d.image) { var im = el('img'); im.src = d.image; im.alt = d.title; im.referrerPolicy = 'no-referrer'; shot.appendChild(im); }
+    var info = el('div'), when = el('span', 'when');
+    when.appendChild(el('span', 'mall', d.mall || '')); when.appendChild(document.createTextNode(ko(d.sentAt) + ' 카톡방에 보냄'));
+    info.appendChild(when); info.appendChild(el('h1', '', d.title));
+    var pr = el('div', 'price'); pr.appendChild(el('b', '', won(d.price)));
+    if (d.saving) pr.appendChild(el('span', 'save', '다른 곳보다 ' + d.saving + '% 쌈'));
+    info.appendChild(pr);
+    if (d.baseline && d.price) {
+      var cmp = el('div', 'cmp');
+      [['us', '이 딜', d.price, Math.max(6, Math.round(d.price / d.baseline * 100))], ['', '다른 곳', d.baseline, 100]].forEach(function (x) {
+        var row = el('div', 'row ' + x[0]); row.appendChild(el(x[0] ? 'b' : 'span', '', x[1]));
+        var bar = el('span', 'bar'), i = el('i'); i.style.width = x[3] + '%'; bar.appendChild(i); row.appendChild(bar);
+        row.appendChild(el('span', '', won(x[2]))); cmp.appendChild(row);
+      });
+      if (d.baselineNote) cmp.appendChild(el('p', '', d.baselineNote + ' · 보낸 시점에 함께 확인한 가격'));
+      info.appendChild(cmp);
+    }
+    var w = el('p', 'warn'); w.appendChild(el('b', '', '⚠ ' + short(d.sentAt) + ' 기준 가격이에요'));
+    w.appendChild(el('span', '', '가격이 달라졌다면 이미 끝난 딜입니다. 구매 전 판매처 가격을 꼭 확인하세요.')); info.appendChild(w);
+    if (d.link) {
+      var st = el('div', 'stack'), a = el('a', 'btn', (d.mall || '판매처') + '에서 지금 가격 보기 ↗');
+      a.href = d.link; a.target = '_blank'; a.rel = 'nofollow sponsored noopener'; st.appendChild(a);
+      st.appendChild(el('p', 'note', DISC[d.mall] || DEF)); info.appendChild(st);
+    }
+    wrap.appendChild(shot); wrap.appendChild(info); box.appendChild(wrap);
+  }
+  fetch('https://hotdeal-feed-default-rtdb.asia-southeast1.firebasedatabase.app/feed/items/' + id + '.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d) return draw(d);
+      return fetch('https://raw.githubusercontent.com/wowplus1/hotdeal-feed/main/web.json').then(function (r) { return r.ok ? r.json() : { items: [] }; })
+        .then(function (j) { draw((j.items || []).filter(function (x) { return String(x.uid) === id; })[0]); });
+    })
+    .catch(function () { box.innerHTML = '<p class="lead">딜을 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.</p>'; });
+})();
+</script>` }));
 
 write('404.html', page({ title: `페이지가 없습니다 - ${SITE}`, desc: '', canon: '/404.html', body: `<h1>페이지를 찾을 수 없습니다</h1><p class="lead">주소가 바뀌었거나 없는 페이지예요.</p><p><a class="btn" href="/">홈으로</a></p>${join}` }));
 write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${BASE}/sitemap.xml\n`);
