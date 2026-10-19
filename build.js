@@ -311,8 +311,7 @@ ${cmp}
 </div></div>
 <section class="about"><h2>이 딜에 대해</h2><p>${about(d, kws)}</p></section>
 ${d.earlier && d.earlier.length ? `<h2>이 상품, 전에 보낸 가격</h2><div class="tbl"><table><thead><tr><th>보낸 시각</th><th class="r">가격</th><th class="r">다른 곳</th></tr></thead><tbody>
-<tr class="low"><td>${dateTime(d.sentAt)} (이번)</td><td class="r">${won(d.price)}</td><td class="r">${won(d.baseline)}</td></tr>
-${d.earlier.map(e => `<tr><td>${dateTime(e.sentAt)}${e.web ? ' · 사이트' : ''}</td><td class="r">${won(e.price)}</td><td class="r">${won(e.baseline)}</td></tr>`).join('')}
+${[Object.assign({ now: 1 }, d), ...d.earlier].map((e, i, arr) => `<tr${+e.price > 0 && +e.price === Math.min(...arr.map(x => +x.price || Infinity)) ? ' class="low"' : ''}><td>${dateTime(e.sentAt)}${e.now ? ' (이번)' : e.web ? ' · 사이트' : ''}</td><td class="r">${won(e.price)}</td><td class="r">${won(e.baseline)}</td></tr>`).join('')}
 </tbody></table></div><p class="note">같은 상품도 보낼 때마다 가격이 달라요. 지금 가격은 판매처에서 확인하세요.</p>` : ''}
 ${join}
 ${kws.length ? `<h2>같은 품목 가격 기록</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}건</em></a></li>`).join('')}</ul>` : ''}
