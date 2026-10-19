@@ -156,7 +156,11 @@ footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-si
 footer a{color:var(--mid)}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:linear-gradient(to top,var(--bg) 62%,transparent);padding:18px 16px calc(14px + env(safe-area-inset-bottom))}
 .bar .cta{max-width:520px;margin:0 auto}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.livetag{color:var(--brand-ink)!important;font-weight:700!important}.livetag::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--brand);margin-right:5px;vertical-align:1px;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.card .new{background:var(--brand);color:#fff;border-radius:6px;padding:0 6px;font-size:11px;font-weight:800}
+.card.fresh{border-color:var(--brand);animation:slidein .5s ease-out}@keyframes slidein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}`;
 
 const KAKAO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.7-1.8 3.8-2.6.6.1 1.2.1 1.9.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>';
@@ -185,7 +189,7 @@ ${body}
 <div class="bar">${ctaBtn}</div>
 </body></html>`;
 
-const card = d => `<li><a class="card" href="${url('deal', d.uid)}"><span class="ph">${d.image ? `<img src="${esc(d.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}</span><span class="body">
+const card = d => `<li data-uid="${esc(d.uid)}"><a class="card" href="${url('deal', d.uid)}"><span class="ph">${d.image ? `<img src="${esc(d.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}</span><span class="body">
 <span class="m"><span class="mall">${esc(d.mall)}</span>${dateTime(d.sentAt)} ${d.web ? '확인' : '보냄'}</span><span class="t">${esc(d.title)}</span>
 <span class="p">${won(d.price)}${d.saving ? `<span class="save">${d.saving}%↓</span>` : ''}${d.baseline ? `<span class="was">${won(d.baseline)}</span>` : ''}</span></span></a></li>`;
 const grid = arr => `<ul class="grid">${arr.map(card).join('')}</ul>`;
@@ -214,6 +218,46 @@ const spark = arr => {
 ${xy.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${i === iLow ? 5 : 3}" fill="${i === iLow ? 'var(--brand)' : 'var(--paper)'}" stroke="var(--brand)" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join('')}</svg>
 <div class="lbl"><span>${dateShort(pts[0].sentAt)}</span><span>가장 낮음 ${won(lo)} · 가장 높음 ${won(hi)}</span><span>${dateShort(pts[pts.length - 1].sentAt)}</span></div></div>`;
 };
+
+// 홈의 「최근 보낸 딜」 을 실시간으로 채운다 (lp/02 와 같은 파이어베이스 경로).
+// 정적 페이지는 10분마다 다시 만들어지지만, 사람이 보는 목록은 카톡에 보내는 순간 바로 뜨게 한다.
+// 새 딜의 상세 페이지가 아직 안 만들어졌으면 hotdeal.best 상세로 보낸다.
+const liveScript = known => `<script>
+(function () {
+  var URL_ = 'https://hotdeal-feed-default-rtdb.asia-southeast1.firebasedatabase.app/feed/items.json?orderBy=%22sentMs%22&limitToLast=20';
+  var KNOWN = new Set(${JSON.stringify(known)});
+  var box = document.getElementById('recent'); if (!box || !window.EventSource) return;
+  var have = new Set([].map.call(box.querySelectorAll('[data-uid]'), function (e) { return e.getAttribute('data-uid'); }));
+  function won(n) { return Number(n) > 0 ? Number(n).toLocaleString('ko-KR') + '원' : ''; }
+  function when(iso) { var m = String(iso).match(/-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/); return m ? (+m[1]) + '/' + (+m[2]) + ' ' + m[3] + ':' + m[4] : ''; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function card(d) {
+    var li = el('li'); li.setAttribute('data-uid', d.uid);
+    var a = el('a', 'card fresh');
+    a.href = KNOWN.has(String(d.uid)) ? '/deal/' + encodeURIComponent(d.uid) + '/' : 'https://hotdeal.best/' + encodeURIComponent(d.uid) + '?utm_source=dealsite';
+    var ph = el('span', 'ph'); if (d.image) { var im = el('img'); im.src = d.image; im.alt = ''; im.referrerPolicy = 'no-referrer'; ph.appendChild(im); }
+    var b = el('span', 'body'), m = el('span', 'm');
+    m.appendChild(el('span', 'mall', d.mall || '')); m.appendChild(document.createTextNode(when(d.sentAt) + ' 보냄'));
+    m.appendChild(el('span', 'new', '새 딜'));
+    var p = el('span', 'p', won(d.price));
+    if (d.saving) p.appendChild(el('span', 'save', d.saving + '%↓'));
+    if (d.baseline) p.appendChild(el('span', 'was', won(d.baseline)));
+    b.appendChild(m); b.appendChild(el('span', 't', d.title || '')); b.appendChild(p);
+    a.appendChild(ph); a.appendChild(b); li.appendChild(a); return li;
+  }
+  function apply(data) {
+    if (!data) return;
+    var list = Array.isArray(data) ? data : (data.uid ? [data] : Object.keys(data).map(function (k) { return data[k]; }));
+    list = list.filter(function (d) { return d && d.uid && d.title && d.mall !== '토스쇼핑' && !/toss\\.(im|shopping)/.test(d.link || '') && !have.has(String(d.uid)); })
+      .sort(function (a, b) { return (a.sentMs || 0) - (b.sentMs || 0); });
+    list.forEach(function (d) { have.add(String(d.uid)); box.insertBefore(card(d), box.firstChild); });
+    var tag = document.getElementById('livetag'); if (tag && list.length) tag.textContent = '실시간 · 새 딜 ' + list.length + '건';
+  }
+  var es = new EventSource(URL_);
+  function on(ev) { try { var m = JSON.parse(ev.data); if (m && m.data) apply(m.data); } catch (e) {} }
+  es.addEventListener('put', on); es.addEventListener('patch', on);
+})();
+</script>`;
 
 // ── 만들기 ──
 fs.rmSync(OUT, { recursive: true, force: true });
@@ -299,10 +343,10 @@ write('index.html', page({ title: `생필품 핫딜, 다른 곳 가격과 비교
 ${ctaBtn}${assure}
 <div class="stats"><div class="stat"><b>${deals.length.toLocaleString('ko-KR')}</b><span>지금까지 고른 딜</span></div><div class="stat"><b>${AVG_SAVE}%</b><span>다른 곳보다 평균</span></div><div class="stat"><b>${Math.round(deals.length / DAYS)}건</b><span>하루 평균</span></div></div>
 </div><div class="pile" aria-hidden="true">${pile.map((d, i) => `<img src="${esc(d.image)}" alt="" referrerpolicy="no-referrer" style="left:${POS[i][0]}px;top:${POS[i][1]}px;transform:rotate(${POS[i][2]}deg);z-index:${i % 3 + 1}">`).join('')}</div></section>
-<h2>최근 보낸 딜 <small><a href="/deals/">전체 ${deals.length}건 →</a></small></h2>${grid(deals.slice(0, 20))}
+<h2>최근 보낸 딜 <small id="livetag" class="livetag">실시간</small> <small><a href="/deals/">전체 ${deals.length}건 →</a></small></h2><ul class="grid" id="recent">${deals.slice(0, 20).map(card).join('')}</ul>
 <h2>품목별 가격 기록 <small><a href="/k/">전체 보기 →</a></small></h2><ul class="chips">${KW.slice(0, 36).map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>
 <h2>쇼핑몰별</h2><ul class="chips">${MALLS.map(m => `<li><a href="${url('mall', m)}">${esc(m)} <em>${byMall[m].length}</em></a></li>`).join('')}</ul>
-${join}` }));
+${join}${liveScript(deals.map(d => String(d.uid)))}` }));
 add('/', kst(deals[0].sentAt).ymd);
 
 write('404.html', page({ title: `페이지가 없습니다 - ${SITE}`, desc: '', canon: '/404.html', body: `<h1>페이지를 찾을 수 없습니다</h1><p class="lead">주소가 바뀌었거나 없는 페이지예요.</p><p><a class="btn" href="/">홈으로</a></p>${join}` }));
