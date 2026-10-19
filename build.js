@@ -180,7 +180,10 @@ const page = ({ title, desc, canon, body, crumbs, img, noindex, ld }) => `<!doct
 <meta property="og:site_name" content="${SITE}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:type" content="website"><meta property="og:url" content="${BASE}${canon}"><meta property="og:image" content="${esc(img || BASE + '/logo.png')}">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="/style.css"><link rel="alternate" type="application/rss+xml" title="${SITE}" href="/rss.xml">
+<link rel="stylesheet" href="/style.css">
+<script>/* GA4 — hotdeal.best 와 같은 속성. 진짜 주소에서만 켠다 (내 PC 미리보기가 숫자에 섞이지 않게) */
+if (location.hostname === 'wowplus1.github.io') { var s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=G-K1HP97RR9J'; document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || []; window.gtag = function () { dataLayer.push(arguments); }; gtag('js', new Date()); gtag('config', 'G-K1HP97RR9J'); }</script><link rel="alternate" type="application/rss+xml" title="${SITE}" href="/rss.xml">
 ${crumbs ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c[0], item: BASE + c[1] })) })}</script>` : ''}
 ${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ''}
 </head><body>
