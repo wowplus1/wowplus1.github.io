@@ -195,13 +195,11 @@ const card = d => `<li data-uid="${esc(d.uid)}"><a class="card" href="${url('dea
 const grid = arr => `<ul class="grid">${arr.map(card).join('')}</ul>`;
 
 // 판매처 버튼. 피드의 링크는 카톡 메시지에 나간 그 제휴 링크다.
-// 우리 사이트(hotdeal.best) 링크면 utm 을 바꿔 단다 — 카톡방 유입과 섞이지 않게.
+// hotdeal.best 상세로 가는 링크는 두지 않는다 (사장님 결정 2026-10-19) — 이 사이트 안에서 끝낸다.
 const SRC = 'dealsite';
-const siteLink = d => `https://hotdeal.best/${encodeURIComponent(d.uid)}?utm_source=${SRC}`;
 const buyLink = d => {
-  if (!d.link) return '';
-  let href = d.link, label = `${esc(d.mall)}에서 지금 가격 보기 ↗`;
-  if (/^https?:\/\/(www\.)?hotdeal\.best\//.test(href)) { href = href.replace(/utm_source=[^&]*/, 'utm_source=' + SRC); label = '핫딜베스트에서 지금 가격 보기 ↗'; }
+  if (!d.link || /^https?:\/\/(www\.)?hotdeal\.best\//.test(d.link)) return '';
+  const href = d.link, label = `${esc(d.mall)}에서 지금 가격 보기 ↗`;
   return `<a class="btn" href="${esc(href)}" target="_blank" rel="nofollow sponsored noopener">${label}</a><p class="note">${esc(disclosureFor(d.mall))}</p>`;
 };
 
@@ -285,7 +283,7 @@ ${d.baselineNote ? `<p>${esc(d.baselineNote)} · 보낸 시점에 함께 확인�
 ${cmp}
 <p class="warn"><b>⚠ ${dateTime(d.sentAt)} 기준 가격이에요</b><span>가격이 달라졌다면 이미 끝난 딜입니다. 구매 전 판매처 가격을 꼭 확인하세요.</span></p>
 <div class="stack">${buyLink(d)}</div>
-<p class="note"><a href="${esc(siteLink(d))}">핫딜베스트에서 판매처별 가격 비교 보기 →</a></p></div></div>
+</div></div>
 ${join}
 ${kws.length ? `<h2>같은 품목 가격 기록</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}건</em></a></li>`).join('')}</ul>` : ''}
 ${related.length ? `<h2>비슷한 딜</h2>${grid(related)}` : ''}
@@ -388,7 +386,7 @@ write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 
     }
     var w = el('p', 'warn'); w.appendChild(el('b', '', '⚠ ' + short(d.sentAt) + ' 기준 가격이에요'));
     w.appendChild(el('span', '', '가격이 달라졌다면 이미 끝난 딜입니다. 구매 전 판매처 가격을 꼭 확인하세요.')); info.appendChild(w);
-    if (d.link) {
+    if (d.link && !/hotdeal\\.best/.test(d.link)) {
       var st = el('div', 'stack'), a = el('a', 'btn', (d.mall || '판매처') + '에서 지금 가격 보기 ↗');
       a.href = d.link; a.target = '_blank'; a.rel = 'nofollow sponsored noopener'; st.appendChild(a);
       st.appendChild(el('p', 'note', DISC[d.mall] || DEF)); info.appendChild(st);
