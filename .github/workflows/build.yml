@@ -1,8 +1,9 @@
-# 한 시간마다 최신 피드를 받아 사이트를 다시 만든다.
+# 10분마다 최신 피드를 확인해서, 새 딜이 있을 때만 사이트를 다시 만든다.
+# (깃허브 예약 실행은 몇 분씩 늦게 도는 일이 있다)
 name: build
 on:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
   push:
     branches: [main]
@@ -25,9 +26,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node update.js
-      - run: node build.js _site
+      - id: upd
+        run: node update.js
+      - if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
+        run: node build.js _site
       - name: archive.json 저장
+        if: steps.upd.outputs.changed == 'true'
         run: |
           if ! git diff --quiet archive.json; then
             git config user.name "dealsite-bot"
@@ -36,9 +40,12 @@ jobs:
             git commit -m "딜 기록 갱신"
             git push
           fi
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
+        uses: actions/configure-pages@v5
+      - if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: _site
       - id: deploy
+        if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
         uses: actions/deploy-pages@v4

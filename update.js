@@ -37,5 +37,8 @@ async function read(name) {
     else if (old.web) { all[it.uid] = Object.assign({}, it, { foundAt: old.sentAt }); promoted++; }
   }
   fs.writeFileSync(F, JSON.stringify(all));
+  // 깃허브 액션에 바뀐 게 있는지 알린다. 없으면 페이지를 다시 만들지 않는다
+  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `changed=${added + promoted > 0}
+`);
   console.log(`새 딜 ${added} · 카톡 발송으로 바뀐 것 ${promoted} · 전체 ${Object.keys(all).length}`);
 })().catch(e => { console.error('오류:', e.message); process.exit(1); });
