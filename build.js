@@ -430,7 +430,9 @@ write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 
 </script>` }));
 
 write('404.html', page({ title: `페이지가 없습니다 - ${SITE}`, desc: '', canon: '/404.html', body: `<h1>페이지를 찾을 수 없습니다</h1><p class="lead">주소가 바뀌었거나 없는 페이지예요.</p><p><a class="btn" href="/">홈으로</a></p>${join}` }));
-write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${BASE}/sitemap.xml\n`);
+// 다음 웹마스터도구 확인 줄은 robots.txt 안에 넣어야 한다. daum-robots.txt 에 그 줄을 두면 덧붙인다 (지우면 확인이 풀림)
+const DAUM = path.join(__dirname, 'daum-robots.txt');
+write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${BASE}/sitemap.xml\n` + (fs.existsSync(DAUM) ? '\n' + fs.readFileSync(DAUM, 'utf8').trim() + '\n' : ''));
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
   urls.map(([u, m]) => `<url><loc>${BASE}${u}</loc><lastmod>${m}</lastmod></url>`).join('\n') + '\n</urlset>\n');
 // RSS — 네이버 서치어드바이저에 사이트맵과 함께 낸다. 새 글을 빨리 알아챈다
