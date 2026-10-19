@@ -279,7 +279,7 @@ for (const d of deals) {
 ${d.baselineNote ? `<p>${esc(d.baselineNote)} · 보낸 시점에 함께 확인한 가격</p>` : ''}</div>` : '';
   const body = `<div class="deal">
 <div class="shot">${d.image ? `<img src="${esc(d.image)}" alt="${esc(d.title)}" referrerpolicy="no-referrer">` : ''}</div>
-<div><span class="when"><span class="mall">${esc(d.mall)}</span>${dateKo(d.sentAt)} ${d.web ? '확인 · 밤사이 찾아 사이트에만 올린 딜' : '카톡방에 보냄'}</span>
+<div><span class="when"><span class="mall">${esc(d.mall)}</span>${dateKo(d.sentAt)} ${d.web ? '확인 · 사이트에만 올린 딜' : '카톡방에 보냄'}</span>
 <h1>${esc(d.title)}</h1>
 <div class="price"><b>${won(d.price)}</b>${d.saving ? `<span class="save">다른 곳보다 ${d.saving}% 쌈</span>` : ''}</div>
 ${cmp}
