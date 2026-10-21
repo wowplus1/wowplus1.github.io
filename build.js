@@ -73,7 +73,7 @@ const CSS = `:root{
   --brand:#E8402A;--brand-ink:#B5301E;--brand-soft:#FDECE8;--save:#FFE14D;--save-ink:#4A3B00;--kakao:#FEE500;--warn:#D0021B;--warn-bg:#FFF1F1;
   --font:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
   --r:16px;--shadow:0 1px 2px rgba(28,26,23,.05),0 6px 18px -10px rgba(28,26,23,.18)}
-@media (prefers-color-scheme:dark){:root{--bg:#16140F;--paper:#201D18;--ink:#F2EEE6;--mid:#BDB5A8;--dim:#8F877A;--line:#332E26;--soft:#2A261F;
+@media (prefers-color-scheme:dark){:root{--bg:#16140F;--paper:#24211B;--ink:#F5F1EA;--mid:#DDD6CA;--dim:#B4AC9F;--line:#3D372E;--soft:#35302A;
   --brand:#FF6A52;--brand-ink:#FF8A76;--brand-soft:#3A221C;--save:#F5D33A;--save-ink:#2A2100;--warn:#FF5A5A;--warn-bg:#3A1A1A;color-scheme:dark}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.65 var(--font);letter-spacing:-.01em;word-break:keep-all;overflow-wrap:anywhere;-webkit-font-smoothing:antialiased}
@@ -101,6 +101,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .pile{position:relative;height:210px;display:none}
 .pile img{position:absolute;width:118px;height:118px;object-fit:cover;border-radius:16px;background:#fff;border:3px solid var(--paper);box-shadow:var(--shadow)}
 @media (min-width:760px){.hero{grid-template-columns:1.25fr 1fr;align-items:center;padding-top:40px}.pile{display:block}}
+@media (max-width:759px){.hero{padding:12px 0 0;gap:8px}.hero h1{font-size:22px;margin:8px 0 4px}.hero .lead{font-size:14px;line-height:1.55;margin:0 0 10px}.hero .cta,.hero .assure{display:none}.stats{gap:6px;margin:0}.stat{padding:8px 10px 7px}.stat b{font-size:18px}.stat span{font-size:11.5px}.hero+h2{margin-top:22px}}
 /* 버튼 */
 .cta{display:flex;align-items:center;justify-content:center;gap:9px;background:var(--kakao);color:#191600;font-weight:800;font-size:16.5px;letter-spacing:-.02em;border-radius:14px;padding:16px 14px;text-decoration:none;box-shadow:0 8px 20px -12px rgba(120,95,0,.55)}
 .cta svg{width:20px;height:20px;fill:#191600}.cta:active{transform:translateY(1px)}
