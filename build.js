@@ -273,9 +273,18 @@ const liveScript = known => `<script>
 </script>`;
 
 // 딜 설명 문장 — 숫자는 모두 기록에 있는 것만 쓴다. 지어내지 않는다
+// 은/는 — 상품명 끝 글자 받침으로 고른다. 숫자·영문 끝은 읽는 소리로 (1963 → 삼 → 은, 4봉 → 봉 → 은)
+const 은는 = w => {
+  const c = String(w).trim().replace(/[s)]}'"’”.,·!?]+$/, '').slice(-1);
+  const k = c.charCodeAt(0);
+  if (k >= 0xAC00 && k <= 0xD7A3) return (k - 0xAC00) % 28 ? '은' : '는';
+  if (/[0-9]/.test(c)) return '0136789'.includes(c) ? '은' : '는';
+  if (/[a-z]/i.test(c)) return 'lmnr'.includes(c.toLowerCase()) ? '은' : '는';
+  return '은(는)';
+};
 const about = (d, kws) => {
   const t = kst(d.sentAt);
-  const parts = [`${esc(d.title)}은(는) ${t.y}년 ${t.mo}월 ${t.d}일 ${t.h}:${t.mi}에 ${esc(d.mall)}에서 ${won(d.price)}에 올라온 딜입니다.`];
+  const parts = [`${esc(d.title)}${은는(d.title)} ${t.y}년 ${t.mo}월 ${t.d}일 ${t.h}:${t.mi}에 ${esc(d.mall)}에서 ${won(d.price)}에 올라온 딜입니다.`];
   if (d.baseline && d.saving) parts.push(`같은 시점에 확인한 ${d.baselineNote ? esc(d.baselineNote) + ' ' : '다른 판매처 '}${won(d.baseline)}보다 ${d.saving}% 낮은 가격이었습니다.`);
   parts.push(d.web ? '카톡방 기준(다른 곳보다 20% 이상)에는 못 미쳐 이 사이트에만 올렸습니다.' : '핫딜베스트 카톡방에 이 가격으로 보낸 딜입니다.');
   const k = kws.filter(w => byKw[w].length > 1);
@@ -284,7 +293,7 @@ const about = (d, kws) => {
     parts.push(`지금까지 고른 ${esc(w)} 딜은 ${arr.length}건이고, 그중 가장 낮았던 가격은 ${won(lo.price)}(${dateTime(lo.sentAt)})입니다.`);
   }
   parts.push('가격은 판매처 사정에 따라 수시로 바뀌니 구매 전에 꼭 다시 확인하세요.');
-  return parts.join(' ');
+  return parts.join('<br>');
 };
 
 // ── 만들기 ──
@@ -314,7 +323,7 @@ ${cmp}
 <p class="warn"><b>⚠ ${dateTime(d.sentAt)} 기준 가격이에요</b><span>가격이 달라졌다면 이미 끝난 딜입니다. 구매 전 판매처 가격을 꼭 확인하세요.</span></p>
 <div class="stack">${buyLink(d)}</div>
 </div></div>
-<section class="about"><h2>이 딜에 대해</h2><p>${about(d, kws)}</p></section>
+<section class="about"><h2>이 딜에 대해</h2><p style="line-height:1.85">${about(d, kws)}</p></section>
 ${d.earlier && d.earlier.length ? `<h2>이 상품, 전에 보낸 가격</h2><div class="tbl"><table><thead><tr><th>보낸 시각</th><th class="r">가격</th><th class="r">다른 곳</th></tr></thead><tbody>
 ${[Object.assign({ now: 1 }, d), ...d.earlier].map((e, i, arr) => `<tr${+e.price > 0 && +e.price === Math.min(...arr.map(x => +x.price || Infinity)) ? ' class="low"' : ''}><td>${dateTime(e.sentAt)}${e.now ? ' (이번)' : e.web ? ' · 사이트' : ''}</td><td class="r">${won(e.price)}</td><td class="r">${won(e.baseline)}</td></tr>`).join('')}
 </tbody></table></div><p class="note">같은 상품도 보낼 때마다 가격이 달라요. 지금 가격은 판매처에서 확인하세요.</p>` : ''}
