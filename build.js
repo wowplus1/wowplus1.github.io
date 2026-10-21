@@ -169,6 +169,8 @@ footer a{color:var(--mid)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}`;
 
+// 스타일이 바뀌면 주소가 바뀌어 휴대폰이 옛 스타일(10분 캐시)을 붙들지 않는다
+const CSSV = require('crypto').createHash('md5').update(CSS).digest('hex').slice(0, 8);
 const KAKAO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.7-1.8 3.8-2.6.6.1 1.2.1 1.9.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>';
 const ctaBtn = `<a class="cta" href="${KAKAO}" target="_blank" rel="noopener">${KAKAO_ICON}카톡으로 핫딜 받기</a>`;
 const assure = '<p class="assure"><span>무료</span><span>알림 꺼 둬도 OK</span><span>개인정보 요구 없음</span><span>언제든 퇴장</span></p>';
@@ -181,7 +183,7 @@ const page = ({ title, desc, canon, body, crumbs, img, noindex, ld }) => `<!doct
 <meta property="og:site_name" content="${SITE}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
 <meta property="og:type" content="website"><meta property="og:url" content="${BASE}${canon}"><meta property="og:image" content="${esc(img || BASE + '/logo.png')}">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v=${CSSV}">
 <script>/* GA4 — hotdeal.best 와 같은 속성. 진짜 주소에서만 켠다 (내 PC 미리보기가 숫자에 섞이지 않게) */
 if (location.hostname === 'wowplus1.github.io') { var s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=G-K1HP97RR9J'; document.head.appendChild(s);
   window.dataLayer = window.dataLayer || []; window.gtag = function () { dataLayer.push(arguments); }; gtag('js', new Date()); gtag('config', 'G-K1HP97RR9J'); }</script><link rel="alternate" type="application/rss+xml" title="${SITE}" href="/rss.xml">
