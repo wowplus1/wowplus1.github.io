@@ -91,8 +91,8 @@ h1{font-size:clamp(24px,5.2vw,34px);line-height:1.3;letter-spacing:-.045em;margi
 h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-items:baseline;gap:8px}h2 small{font-size:13px;color:var(--dim);font-weight:600}
 .lead{color:var(--mid);margin:0 0 16px;max-width:62ch}
 .hl{background:linear-gradient(transparent 60%,var(--save) 60%,var(--save) 92%,transparent 92%);padding:0 2px}
-/* 다크 모드: 흰 글씨 뒤 노란 형광펜이 글씨를 가린다(10/21) — 글씨를 노랗게, 밑줄만 얇게 */
-@media (prefers-color-scheme:dark){.hl{background:linear-gradient(transparent 88%,color-mix(in srgb,var(--save) 60%,transparent) 88%);color:var(--save)}}
+/* 휴대폰 다크 모드: 흰 글씨 뒤 노란 형광펜이 글씨를 가린다(10/21) — 글씨를 노랗게, 밑줄만 얇게. PC 는 형광펜 그대로(사장님) */
+@media (prefers-color-scheme:dark) and (max-width:759px){.hl{background:linear-gradient(transparent 88%,color-mix(in srgb,var(--save) 60%,transparent) 88%);color:var(--save)}}
 /* 첫 화면 */
 .hero{padding:26px 0 8px;display:grid;gap:18px;grid-template-columns:1fr}
 .badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--brand-ink);background:var(--brand-soft);border-radius:999px;padding:5px 11px}
