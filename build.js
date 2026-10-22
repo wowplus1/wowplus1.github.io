@@ -56,6 +56,38 @@ for (const d of deals) for (const w of tokens(d.title)) (byKw[w] = byKw[w] || []
 const KW = Object.keys(byKw).filter(w => byKw[w].length >= 3).sort((a, b) => byKw[b].length - byKw[a].length || a.localeCompare(b, 'ko'));
 const kwOf = d => tokens(d.title).filter(w => KW.includes(w));
 
+// 분류 — 「라면 핫딜」「생수 최저가」 같은 검색어를 받는 자리 (10/22). 상품명으로 나눈다. 한 딜이 두 분류에 들 수 있다.
+// [이름, 들어갈 말, 빼는 말]. 딜이 6건 이상 쌓인 분류만 페이지를 만든다 (빈 페이지는 검색엔진이 저품질로 본다).
+const CATS = [
+  ['라면', /라면|짜파게티|짜왕|큰사발|사발면|컵누들|비빔면|너구리|안성탕면|육개장 ?사발|불닭볶음면|감자면|칼국수|우동|쌀국수/, /칩|스낵|과자/],
+  ['생수·탄산수', /생수|샘물|삼다수|백산수|아이시스|탄산수|트레비|씨그램|탄산 ?워터/],
+  ['음료', /콜라|사이다|스프라이트|환타|에이드|탄산음료|이온|포카리|게토레이|주스|비타500|밀키스|웰치스|코코팜|박카스|헛개|수염차|보리차|블랙보리|녹차|콤부차|음료|얼박|레몬수|아쿠아레몬/, /세제|샴푸|콜라겐|뿌링클|후라이드|치킨|올리브유|김 /],
+  ['커피·차', /커피|아메리카노|콜드브루|캡슐|돌체구스토|네스프레소|카누|맥심|조지아|티젠|쌍화|생강차|유자차|대추차/, /세제|캡슐세제/],
+  ['우유·두유·요거트', /우유|두유|요거트|요구르트|엔요|그릭/],
+  ['과자·간식', /과자|칩|스낵|쿠키|비스킷|비스코프|크래커|초콜릿|초코바|사탕|캔디|젤리|빈츠|칙촉|브라우니|오레오|아몬드|견과|도라야키|마시멜로|스니커즈|트윅스|츄파춥스|양갱|시리얼|그래놀라|콘푸로스트/, /토너|수딩|아동용|네파/],
+  ['즉석밥·간편식', /햇반|즉석밥|흑미밥|컵밥|볶음밥|만두|피자|곰탕|삼계탕|국밥|카레|수제비|떡볶이|어묵|가라아게|너겟|핫도그|돈까스|파스타|스파게티|마카로니|짜장/, /소스|라면/],
+  ['고기·수산', /한우|돼지|삼겹|목살|닭가슴살|훈제오리|오리훈제|오리 ?슬라이스|생오리|갈비|불고기|쭈꾸미|주꾸미|오징어|새우|고등어|연어|대게|랍스터|윙봉|닭다리|순살/, /간장|새우깡/],
+  ['과일·채소', /감귤|한라봉|사과|샤인머스캣|딸기|고구마|다진마늘|양파|키위|자몽|과일|귤/, /주스|사과식초|음료|에이드/],
+  ['소스·조미료', /소스|케찹|케첩|마요네즈|식초|된장|고추장|간장|굴소스|참기름|올리브유|식용유|설탕|소금|시럽|드레싱|스위트콘/],
+  ['영양제·건강', /비타민|유산균|프로바이오틱스|오메가|콜라겐|비오틴|크레아틴|프로틴|홍삼|루테인|마그네슘|아연|B-컴플렉스|영양제/, /컨디셔너|샴푸|트리트먼트|사탕/],
+  ['주류', /소주|맥주|와인|막걸리|위스키|하이볼/, /무알콜|제로칼로리 음료/],
+  ['화장지·물티슈', /화장지|휴지|두루마리|키친타월|물티슈|미용티슈|티슈/],
+  ['세제·섬유유연제', /세제|섬유유연제|드라이시트|표백|락스|세탁|캡슐세제|식기세척기/],
+  ['샴푸·바디·헤어', /샴푸|린스|컨디셔너|트리트먼트|바디워시|바디로션|헤어|데오|비누|핸드워시|바디스프레이/],
+  ['스킨케어·화장품', /크림|세럼|에센스|토너|로션|선크림|클렌징|마스크팩|리무버|수딩젤|파운데이션|앰플|올인원|립밤/, /아이스크림|크림빵|생크림|크림치즈|오레오|초코|쿠키|크림브륄레|오예스|시리얼|과자|파이/],
+  ['구강용품', /치약|칫솔|구강|가글|치실/],
+  ['기저귀·유아', /기저귀|하기스|나비잠|보솜이|마미포코|분유|유아|키즈|아기|베이비/],
+  ['생리대', /생리대|팬티라이너|오버나이트|탐폰|라이너/],
+  ['주방용품', /프라이팬|후라이팬|냄비|케틀|텀블러|밀폐용기|찬통|글라스락|락앤락|수세미|고무장갑|도마|주방|멀티팟|편수|양수|웍/],
+  ['생활용품', /건전지|배터리|멀티탭|리필봉투|쓰레기봉투|매직캔|테이프 ?클리너|크리너|방향제|캔들|제습|탈취|모기|밴드|마스크|베개|이불|수건/, /헤어|셀퓨전|ahc|AHC|선크림|마스크팩|앰플/],
+  ['디지털·가전', /모니터|노트북|그램|키보드|마우스|SSD|메인보드|파워|충전기|케이블|이어폰|헤드셋|드라이기|청소기|공기청정기|가습기|에어프라이어|태블릿|스피커|구강세정기|그래픽카드|CPU/, /씨그램|에이드|건전지|츄파춥스|츄파츕스/],
+  ['패션·잡화', /패딩|다운|자켓|재킷|가디건|니트|티셔츠|트레이닝|운동화|로퍼|슬립온|구두|백팩|가방|양말|속옷|드로즈|시계|롱패딩/, /다운로드/],
+];
+const catOf = d => CATS.filter(([, inc, exc]) => inc.test(d.title) && !(exc && exc.test(d.title))).map(c => c[0]);
+const byCat = {};
+for (const d of deals) for (const c of catOf(d)) (byCat[c] = byCat[c] || []).push(d);
+const CATL = CATS.map(c => c[0]).filter(c => (byCat[c] || []).length >= 6);
+
 const byMall = {};
 for (const d of deals) (byMall[d.mall || '기타'] = byMall[d.mall || '기타'] || []).push(d);
 const MALLS = Object.keys(byMall).sort((a, b) => byMall[b].length - byMall[a].length);
@@ -112,6 +144,19 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .btn:hover{background:var(--brand-ink)}.btn:active{transform:translateY(1px)}
 /* 칩 */
 .chips{display:flex;flex-wrap:wrap;gap:7px;padding:0;margin:0;list-style:none}
+/* 사이트 검색 상자 */
+.sbox{display:flex;gap:8px;margin:22px 0 0}@media (max-width:759px){.sbox{margin:14px 0 0}.sbox input{padding:10px 12px}}.sbox input{flex:1;min-width:0;font:inherit;font-size:15px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink)}
+.sbox input:focus{outline:none;border-color:var(--brand)}.sbox button{font:inherit;font-weight:800;font-size:15px;padding:0 18px;border-radius:12px;border:0;background:var(--ink);color:var(--paper);cursor:pointer}
+.top nav a.sr{display:inline-flex;align-items:center}.top nav a.sr svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2}
+/* 왜 카톡으로 받아야 하나 — 싸게 뜸 → 금방 끝남 → 먼저 본 사람이 삼 */
+.flow{list-style:none;margin:8px 0 12px;padding:0;display:grid;gap:12px;counter-reset:f}
+.flow li{display:grid;grid-template-columns:30px 1fr;column-gap:10px;align-items:center}
+.flow li::before{counter-increment:f;content:counter(f);grid-row:span 2;align-self:start;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;background:var(--brand);color:#fff}
+.flow li:nth-child(2)::before{background:var(--dim)}.flow li:nth-child(3)::before{background:var(--kakao);color:#191600}
+.flow b{font-size:16px;letter-spacing:-.03em;line-height:1.4}.flow span{font-size:13.5px;line-height:1.5;opacity:.8}
+.why{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:18px 18px 14px;margin:24px 0 0;box-shadow:var(--shadow)}
+.why h2{margin:0 0 2px}.why .note{margin:0}
+@media (min-width:760px){.why .flow{grid-template-columns:repeat(3,1fr);gap:16px}}
 .chips a{display:inline-flex;align-items:center;gap:5px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13.5px;text-decoration:none}
 .chips a:hover{border-color:var(--ink)}.chips a em{font-style:normal;color:var(--dim);font-size:12px}
 /* 카드 목록 */
@@ -176,7 +221,10 @@ const CSSV = require('crypto').createHash('md5').update(CSS).digest('hex').slice
 const KAKAO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.7-1.8 3.8-2.6.6.1 1.2.1 1.9.1 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>';
 const ctaBtn = `<a class="cta" href="${KAKAO}" target="_blank" rel="noopener">${KAKAO_ICON}카톡으로 핫딜 받기</a>`;
 const assure = '<p class="assure"><span>무료</span><span>알림 꺼 둬도 OK</span><span>개인정보 요구 없음</span><span>언제든 퇴장</span></p>';
-const join = `<section class="join"><h3>이런 딜, 하루 15~20건 카톡으로 갑니다</h3><p>싸게 뜬 생필품을 다른 판매처 가격과 비교해서, 괜찮을 때만 바로 보내드려요.</p>${ctaBtn}${assure}</section>`;
+// 핫딜의 핵심: 가격은 금방 돌아간다 → 기록을 볼 땐 늦다 → 싸게 뜬 순간 카톡으로 받아야 산다 (10/22 사장님 요청)
+const flow = `<ol class="flow"><li><b>싸게 뜬다</b><span>쿠폰·타임특가로 잠깐 가격이 내려가요</span></li><li><b>금방 끝난다</b><span>쿠폰이 다 쓰이거나 재고가 빠지면 원래 가격으로 돌아가요</span></li><li><b>먼저 본 사람이 산다</b><span>싸게 뜬 순간 카톡으로 알려드려요</span></li></ol>`;
+const joinPlain = `<section class="join"><h3>싸게 뜬 순간, 카톡으로 받아 보세요</h3><p>다른 판매처 가격과 비교해서 괜찮을 때만 바로 보내드려요.</p>${ctaBtn}${assure}</section>`;
+const join = `<section class="join"><h3>핫딜 가격은 오래 가지 않아요</h3>${flow}<p>싸게 뜬 생필품을 다른 판매처 가격과 비교해서, 괜찮을 때만 바로 보내드려요.</p>${ctaBtn}${assure}</section>`;
 
 const page = ({ title, desc, canon, body, crumbs, img, noindex, ld }) => `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -192,7 +240,7 @@ if (location.hostname === 'wowplus1.github.io') { var s = document.createElement
 ${crumbs ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c[0], item: BASE + c[1] })) })}</script>` : ''}
 ${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ''}
 </head><body>
-<header class="top"><div class="in"><a class="brand" href="/"><img src="/logo.png" alt="">핫딜베스트<small>카톡방</small></a><nav><a href="/deals/">전체 딜</a><a href="/k/">품목별</a></nav></div></header>
+<header class="top"><div class="in"><a class="brand" href="/"><img src="/logo.png" alt="">핫딜베스트<small>카톡방</small></a><nav><a href="/c/">분류</a><a href="/k/">품목별</a><a class="sr" href="/search/" aria-label="검색"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a></nav></div></header>
 <main class="wrap">
 ${crumbs ? `<nav class="crumb" aria-label="현재 위치">${crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="${c[1]}">${esc(c[0])}</a>` : `<span>${esc(c[0])}</span>`).join(' › ')}</nav>` : ''}
 ${body}
@@ -328,6 +376,7 @@ ${d.earlier && d.earlier.length ? `<h2>이 상품, 전에 보낸 가격</h2><div
 ${[Object.assign({ now: 1 }, d), ...d.earlier].map((e, i, arr) => `<tr${+e.price > 0 && +e.price === Math.min(...arr.map(x => +x.price || Infinity)) ? ' class="low"' : ''}><td>${dateTime(e.sentAt)}${e.now ? ' (이번)' : e.web ? ' · 사이트' : ''}</td><td class="r">${won(e.price)}</td><td class="r">${won(e.baseline)}</td></tr>`).join('')}
 </tbody></table></div><p class="note">같은 상품도 보낼 때마다 가격이 달라요. 지금 가격은 판매처에서 확인하세요.</p>` : ''}
 ${join}
+${catOf(d).filter(c => CATL.includes(c)).length ? `<h2>분류</h2><ul class="chips">${catOf(d).filter(c => CATL.includes(c)).map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}건</em></a></li>`).join('')}</ul>` : ''}
 ${kws.length ? `<h2>같은 품목 가격 기록</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}건</em></a></li>`).join('')}</ul>` : ''}
 ${related.length ? `<h2>비슷한 딜</h2>${grid(related)}` : ''}
 ${sameMall.length ? `<h2>${esc(d.mall)} 최근 딜</h2>${grid(sameMall)}` : ''}`;
@@ -358,6 +407,67 @@ write('k/index.html', page({ title: `품목별 핫딜 기록 - ${SITE}`, desc: '
   body: `<h1>품목별 핫딜 기록</h1><p class="lead">3번 이상 나온 브랜드·품목이에요. 누르면 날짜별 가격을 볼 수 있습니다.</p><ul class="chips">${KW.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>${join}` }));
 add('/k/', kst(deals[0].sentAt).ymd);
 
+// 분류별
+const sbox = (q = '') => `<form class="sbox" action="/search/" role="search"><input name="q" value="${esc(q)}" placeholder="지난 핫딜 찾기 (예: 라면, 생수)" aria-label="핫딜 검색"><button>검색</button></form>`;
+for (const c of CATL) {
+  const arr = byCat[c];
+  const d30 = arr.filter(d => Date.now() - Date.parse(d.sentAt) < 30 * 864e5).length;
+  const kc = {};
+  for (const d of arr) for (const w of new Set(kwOf(d))) kc[w] = (kc[w] || 0) + 1;
+  const kws = Object.keys(kc).filter(w => kc[w] >= 2 && w !== c).sort((a, b) => kc[b] - kc[a]).slice(0, 18);
+  const saves = arr.filter(d => d.saving > 0);
+  const avg = saves.length ? Math.round(saves.reduce((t, d) => t + d.saving, 0) / saves.length) : 0;
+  const body = `<h1>${esc(c)} 핫딜·최저가 모음</h1>
+<p class="lead">핫딜베스트가 다른 판매처 가격과 비교해 고른 <b>${esc(c)}</b> 딜 ${arr.length}건입니다.${d30 ? ` 최근 30일에 ${d30}건 나왔고,` : ''}${avg ? ` 같은 시점 다른 판매처보다 평균 <span class="hl">${avg}%</span> 낮았어요.` : ''} 가격은 보낸 시각 기준이라 지금은 다를 수 있습니다.</p>
+${kws.length ? `<h2>${esc(c)} 중 자주 나온 품목</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${kc[w]}</em></a></li>`).join('')}</ul>` : ''}
+<h2>${esc(c)} 딜 <small>최근 것부터 ${arr.length}건</small></h2>${grid(arr)}
+${join}`;
+  write(`c/${c}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${c} 핫딜 모음`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) },
+    title: `${c} 핫딜·최저가 모음 - ${SITE}`, desc: `${c} 핫딜 ${arr.length}건. 쿠팡·지마켓 등에서 다른 판매처보다 싸게 뜬 ${c} 가격 기록을 날짜별로 모았습니다.`,
+    canon: url('c', c), body, img: (arr.find(d => d.image) || {}).image, crumbs: [['홈', '/'], ['분류', '/c/'], [c, url('c', c)]] }));
+  add(url('c', c), kst(arr[0].sentAt).ymd);
+}
+write('c/index.html', page({ title: `분류별 핫딜 모음 - ${SITE}`, desc: '라면·생수·커피·세제·화장지 등 분류별로 핫딜베스트가 고른 핫딜과 가격 기록을 모았습니다.', canon: '/c/',
+  crumbs: [['홈', '/'], ['분류', '/c/']],
+  body: `<h1>분류별 핫딜 모음</h1><p class="lead">식품·생필품을 분류별로 모았어요. 누르면 그 분류에서 고른 딜을 최근 것부터 볼 수 있습니다.</p>
+<ul class="chips">${CATL.map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}</em></a></li>`).join('')}</ul>${sbox()}${join}` }));
+add('/c/', kst(deals[0].sentAt).ymd);
+
+// 사이트 검색 — 지난 딜 전체를 작은 JSON 으로 내려 받아 브라우저에서 찾는다 (서버 없음). 검색 결과 쪽은 noindex
+write('search.json', JSON.stringify(deals.map(d => ({ u: decodeURIComponent(dealUrl(d)), t: d.title, p: d.price, m: d.mall, s: d.sentAt, i: d.image || '', v: d.saving || 0, b: d.baseline || 0, w: d.web ? 1 : 0 }))));
+write('search/index.html', page({ title: `핫딜 기록 검색 - ${SITE}`, desc: '핫딜베스트가 고른 지난 핫딜을 상품 이름으로 찾아보세요.', canon: '/search/', noindex: true,
+  crumbs: [['홈', '/'], ['검색', '/search/']],
+  body: `<h1>지난 핫딜 찾기</h1><p class="lead">상품 이름이나 브랜드로 찾아보세요. 핫딜베스트가 지금까지 고른 딜 ${deals.length}건에서 찾습니다.</p>${sbox()}
+<p class="note" id="sinfo"></p><ul class="grid" id="sres"></ul>
+<h2>자주 찾는 품목</h2><ul class="chips">${KW.slice(0, 24).map(w => `<li><a href="/search/?q=${encodeURIComponent(w)}">${esc(w)}</a></li>`).join('')}</ul>
+${join}
+<script>
+(function () {
+  var q = new URLSearchParams(location.search).get('q') || '';
+  var input = document.querySelector('.sbox input'); input.value = q; if (!q) { input.focus(); return; }
+  document.title = q + ' 핫딜 검색 - ${SITE}';
+  var info = document.getElementById('sinfo'), box = document.getElementById('sres');
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function won(n) { return Number(n) > 0 ? Number(n).toLocaleString('ko-KR') + '원' : ''; }
+  function when(iso) { var m = String(iso).match(/-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/); return m ? (+m[1]) + '/' + (+m[2]) + ' ' + m[3] + ':' + m[4] : ''; }
+  var norm = function (s) { return String(s).toLowerCase().replace(/\\s+/g, ''); };
+  var toks = q.toLowerCase().split(/\\s+/).filter(Boolean).map(norm);
+  info.textContent = '찾는 중…';
+  fetch('/search.json').then(function (r) { return r.json(); }).then(function (all) {
+    var hit = all.filter(function (d) { var t = norm(d.t); return toks.every(function (k) { return t.indexOf(k) >= 0; }); });
+    if (window.gtag) gtag('event', 'search', { search_term: q, results: hit.length });
+    if (!hit.length) { info.innerHTML = '「' + esc(q) + '」 딜은 아직 없어요. 새로 싸게 뜨면 카톡방으로 먼저 보내드려요.'; return; }
+    var low = hit.reduce(function (a, b) { return b.p > 0 && b.p < a.p ? b : a; }, hit[0]);
+    info.innerHTML = '「' + esc(q) + '」 딜 ' + hit.length + '건 · 가장 낮았던 가격 <b>' + won(low.p) + '</b> (' + when(low.s) + ', ' + esc(low.m) + ')';
+    box.innerHTML = hit.slice(0, 60).map(function (d) {
+      return '<li><a class="card" href="' + esc(d.u) + '"><span class="ph">' + (d.i ? '<img src="' + esc(d.i) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '</span><span class="body">'
+        + '<span class="m"><span class="mall">' + esc(d.m) + '</span>' + when(d.s) + (d.w ? ' 확인' : ' 보냄') + '</span><span class="t">' + esc(d.t) + '</span>'
+        + '<span class="p">' + won(d.p) + (d.v ? '<span class="save">' + d.v + '%↓</span>' : '') + (d.b ? '<span class="was">' + won(d.b) + '</span>' : '') + '</span></span></a></li>';
+    }).join('');
+  }).catch(function () { info.textContent = '검색 자료를 불러오지 못했어요. 잠시 뒤 다시 해 주세요.'; });
+})();
+</script>` }));
+
 // 쇼핑몰별
 for (const m of MALLS) {
   write(`mall/${m}/index.html`, page({ title: `${m} 핫딜 모음 - ${SITE}`, desc: `핫딜베스트가 고른 ${m} 핫딜 ${byMall[m].length}건.`, canon: url('mall', m),
@@ -378,7 +488,8 @@ add('/deals/', kst(deals[0].sentAt).ymd);
 const pile = deals.filter(d => d.image).slice(0, 7);
 const POS = [[8, 30, -9], [118, 6, 6], [228, 34, -4], [40, 104, 7], [158, 92, -7], [262, 110, 9], [96, 150, -3]];
 write('index.html', page({ ld: [
-  { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE, alternateName: '핫딜베스트', url: BASE + '/', inLanguage: 'ko' },
+  { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE, alternateName: '핫딜베스트', url: BASE + '/', inLanguage: 'ko',
+    potentialAction: { '@type': 'SearchAction', target: BASE + '/search/?q={search_term_string}', 'query-input': 'required name=search_term_string' } },
   { '@context': 'https://schema.org', '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/', logo: BASE + '/logo.png', sameAs: ['https://hotdeal.best/'] }], title: `생필품 핫딜, 다른 곳 가격과 비교해 카톡으로 - ${SITE}`, desc: '싸게 뜬 생필품·식품 핫딜을 다른 판매처 가격과 비교해 카카오톡 오픈채팅으로 보내드립니다. 지금까지 보낸 딜과 품목별 가격 기록.', canon: '/',
   body: `<section class="hero"><div>
 <span class="badge"><i></i>24시간 업데이트 · 카톡방은 아침 7시 ~ 밤 10시</span>
@@ -387,10 +498,13 @@ write('index.html', page({ ld: [
 ${ctaBtn}${assure}
 <div class="stats"><div class="stat"><b>${deals.length.toLocaleString('ko-KR')}</b><span>지금까지 고른 딜</span></div><div class="stat"><b>${AVG_SAVE}%</b><span>다른 곳보다 평균</span></div><div class="stat"><b>${Math.round(deals.length / DAYS)}건</b><span>하루 평균</span></div></div>
 </div><div class="pile" aria-hidden="true">${pile.map((d, i) => `<img src="${esc(d.image)}" alt="" referrerpolicy="no-referrer" style="left:${POS[i][0]}px;top:${POS[i][1]}px;transform:rotate(${POS[i][2]}deg);z-index:${i % 3 + 1}">`).join('')}</div></section>
+${sbox()}
 <h2>최근 보낸 딜 <small id="livetag" class="livetag">실시간</small> <small><a href="/deals/">전체 ${deals.length}건 →</a></small></h2><ul class="grid" id="recent">${deals.slice(0, 20).map(card).join('')}</ul>
+<section class="why"><h2>핫딜 가격은 오래 가지 않아요</h2>${flow}<p class="note">위 기록은 보낸 시각의 가격이에요. 지금 들어가면 이미 끝났을 수 있어서, 싸게 뜬 순간 카톡으로 보내드립니다.</p></section>
+<h2>분류별 핫딜 <small><a href="/c/">전체 보기 →</a></small></h2><ul class="chips">${CATL.map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}</em></a></li>`).join('')}</ul>
 <h2>품목별 가격 기록 <small><a href="/k/">전체 보기 →</a></small></h2><ul class="chips">${KW.slice(0, 36).map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>
 <h2>쇼핑몰별</h2><ul class="chips">${MALLS.map(m => `<li><a href="${url('mall', m)}">${esc(m)} <em>${byMall[m].length}</em></a></li>`).join('')}</ul>
-${join}${liveScript(deals.map(d => String(d.uid)))}` }));
+${joinPlain}${liveScript(deals.map(d => String(d.uid)))}` }));
 add('/', kst(deals[0].sentAt).ymd);
 
 // 방금 들어온 딜의 상세. 정적 페이지가 만들어지기 전(최대 10~20분)에만 쓴다.
