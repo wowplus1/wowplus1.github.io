@@ -261,7 +261,7 @@ const grid = arr => `<ul class="grid">${arr.map(card).join('')}</ul>`;
 const SRC = 'dealsite';
 const buyLink = d => {
   if (!d.link || /^https?:\/\/(www\.)?hotdeal\.best\//.test(d.link)) return '';
-  const href = d.link, label = `${esc(d.mall)}에서 지금 가격 보기 ↗`;
+  const href = d.webLink || d.link, label = `${esc(d.mall)}에서 지금 가격 보기 ↗`;
   return `<a class="btn" href="${esc(href)}" target="_blank" rel="nofollow sponsored noopener">${label}</a><p class="note">${esc(disclosureFor(d.mall))}</p>`;
 };
 
