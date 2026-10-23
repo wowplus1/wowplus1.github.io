@@ -38,6 +38,7 @@ jobs:
             git config user.email "dealsite-bot@users.noreply.github.com"
             git add archive.json
             git commit -m "딜 기록 갱신"
+            git pull --rebase -q || true   # 그 사이 사람이 코드를 올렸으면 받아서 (10/23 push 거절로 한 번 실패)
             git push
           fi
       - name: IndexNow 목록 (바뀐 페이지)
