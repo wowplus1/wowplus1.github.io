@@ -330,15 +330,34 @@ const 은는 = w => {
   if (/[a-z]/i.test(c)) return 'lmnr'.includes(c.toLowerCase()) ? '은' : '는';
   return '은(는)';
 };
+// 같은 상품인가 — 이름이 (띄어쓰기·기호 빼고) 같거나, 모델 코드(BM7620-83A·TAH2209 같은 영문+숫자)가 겹칠 때만.
+// 500ml·70gsm·1875g 같은 숫자+단위는 모델 코드로 치지 않는다
+const normTitle = t => String(t || '').toLowerCase().replace(/[^0-9a-z가-힣]/g, '');
+// Ultra5·i7 같은 사양 이름은 여러 모델에 붙으므로, 하이픈이 있거나 숫자가 3자리 이상인 것만 모델 코드로 본다.
+// 코드가 같아도 용량(2TB/4TB·591ml/887ml)이 다르면 다른 상품이다
+const codesOf = t => new Set((String(t || '').match(/[A-Za-z0-9][A-Za-z0-9-]{2,}/g) || [])
+  .filter(s => /[a-z]/i.test(s) && /\d/.test(s) && !/^[\d.]+[a-z]+\d*$/i.test(s) && (/-/.test(s) || (s.match(/\d/g) || []).length >= 3))
+  .map(s => s.toUpperCase()));
+const sizesOf = t => (String(t || '').match(/\d+(?:\.\d+)?\s*(?:tb|gb|ml|kg|l|g)(?![a-z])/gi) || []).map(s => s.replace(/\s/g, '').toLowerCase()).sort().join(',');
+const byItemKey = new Map();
+for (const x of deals) for (const k of ['t:' + normTitle(x.title), ...[...codesOf(x.title)].map(c => 'c:' + c)]) {
+  if (!byItemKey.has(k)) byItemKey.set(k, []);
+  byItemKey.get(k).push(x);
+}
+const sameItems = d => [...new Map(['t:' + normTitle(d.title), ...[...codesOf(d.title)].map(c => 'c:' + c)]
+  .flatMap(k => byItemKey.get(k) || []).filter(x => x.uid !== d.uid && x.price > 0 && sizesOf(x.title) === sizesOf(d.title)).map(x => [x.uid, x])).values()];
 const about = (d, kws) => {
   const t = kst(d.sentAt);
   const parts = [`${esc(d.title)}${은는(d.title)} ${t.y}년 ${t.mo}월 ${t.d}일 ${t.h}:${t.mi}에 ${esc(d.mall)}에서 ${won(d.price)}에 올라온 딜입니다.`];
   if (d.baseline && d.saving) parts.push(`같은 시점에 확인한 ${d.baselineNote ? esc(d.baselineNote) + ' ' : '다른 판매처 '}${won(d.baseline)}보다 ${d.saving}% 낮은 가격이었습니다.`);
   parts.push(d.web ? '카톡방 기준(다른 곳보다 20% 이상)에는 못 미쳐 이 사이트에만 올렸습니다.' : '핫딜베스트 카톡방에 이 가격으로 보낸 딜입니다.');
-  const k = kws.filter(w => byKw[w].length > 1);
-  if (k.length) {
-    const w = k[0], arr = byKw[w], lo = arr.reduce((a, b) => (b.price > 0 && b.price < a.price ? b : a), arr[0]);
-    parts.push(`지금까지 고른 ${esc(w)} 딜은 ${arr.length}건이고, 그중 가장 낮았던 가격은 ${won(lo.price)}(${dateTime(lo.sentAt)})입니다.`);
+  // 같은 상품끼리만 비교한다 — 품목 단어(브랜드)만 같으면 다른 모델이 섞인다(시티즌 에코드라이브 ↔ 큐앤큐, 11/3)
+  const same = sameItems(d);
+  if (same.length) {
+    const lo = same.reduce((a, b) => (b.price < a.price ? b : a));
+    parts.push(lo.price < d.price
+      ? `같은 상품을 다른 날 ${won(lo.price)}(${dateTime(lo.sentAt)})에 고른 적이 있어, 이번 가격이 가장 낮은 건 아닙니다.`
+      : `같은 상품을 다른 날 ${same.length}번 더 골랐는데, 그중 이번 가격이 가장 낮았습니다(같은 가격 포함).`);
   }
   parts.push('가격은 판매처 사정에 따라 수시로 바뀌니 구매 전에 꼭 다시 확인하세요.');
   return parts.join('<br>');
