@@ -12,7 +12,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 
-const BASE = 'https://wowplus1.github.io';
+const BASE = 'https://deal.hotdeal.best';
 const SITE = '핫딜베스트 카톡방';
 const KAKAO = 'https://open.kakao.com/o/p89h8DIi';
 const OUT = path.resolve(process.argv[2] || path.join(__dirname, 'site'));
@@ -235,7 +235,7 @@ const page = ({ title, desc, canon, body, crumbs, img, noindex, ld }) => `<!doct
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="/style.css?v=${CSSV}">
 <script>/* GA4 — hotdeal.best 와 같은 속성. 진짜 주소에서만 켠다 (내 PC 미리보기가 숫자에 섞이지 않게) */
-if (location.hostname === 'wowplus1.github.io') { var s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=G-K1HP97RR9J'; document.head.appendChild(s);
+if (location.hostname === 'deal.hotdeal.best' || location.hostname === 'wowplus1.github.io') { var s = document.createElement('script'); s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=G-K1HP97RR9J'; document.head.appendChild(s);
   window.dataLayer = window.dataLayer || []; window.gtag = function () { dataLayer.push(arguments); }; gtag('js', new Date()); gtag('config', 'G-K1HP97RR9J'); }</script><link rel="alternate" type="application/rss+xml" title="${SITE}" href="/rss.xml">
 ${crumbs ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c[0], item: BASE + c[1] })) })}</script>` : ''}
 ${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ''}

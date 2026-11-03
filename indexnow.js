@@ -6,7 +6,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 
-const HOST = 'wowplus1.github.io';
+const HOST = 'deal.hotdeal.best';
 const KEY = '769b29543e6a814b7e5107f1bd9f84fe';
 const LIST = path.join(__dirname, 'indexnow-urls.txt');
 const [mode, out = '_site'] = process.argv.slice(2);
