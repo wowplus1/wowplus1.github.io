@@ -195,6 +195,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .stack{display:grid;gap:10px}
 .note{font-size:12.5px;color:var(--dim);margin:6px 0 0}.note a{color:var(--mid)}
 .about p{color:var(--mid);margin:0;max-width:68ch}
+.trend-head{margin:0 0 10px;line-height:1.75;color:var(--ink);font-size:15px}.trend-head b{color:var(--brand-ink)}
 .price .best{display:inline-flex;align-items:center;font-size:13px;font-weight:700;color:var(--paper);background:var(--brand-ink);border-radius:999px;padding:4px 10px;margin-left:6px;vertical-align:middle}
 .about b,.vlist b{color:var(--brand-ink);font-weight:700}
 .about > p{line-height:1.85;margin:0 0 10px}.lead + .lead{margin-top:-6px}.about > p:last-of-type{margin-bottom:0}.about .note{margin-top:8px}.stack.again{margin-top:18px}.tbl td.gain{color:var(--brand-ink);font-weight:700}
@@ -206,7 +207,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .lc-plot{position:relative;height:160px;margin-left:46px}
 .lc-plot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;color:var(--c)}
 .lc-grid{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
-.lc-area{fill:currentColor;fill-opacity:.1}
+.lc-area{fill:currentColor;fill-opacity:.1}.lc-band{fill:var(--brand);fill-opacity:.13}
 .lc-line{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .lc-ref{stroke:var(--brand);stroke-opacity:.8;stroke-width:1;vector-effect:non-scaling-stroke}
 .lc-y{position:absolute;left:-46px;width:40px;text-align:right;transform:translateY(-50%);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
@@ -292,7 +293,8 @@ const buyLink = d => {
 // 눈금 간격 — 1·2·2.5·5 의 10배수 중, 칸이 5개 이하가 되는 가장 촘촘한 것 (필립스 18만~51만: 20만 간격이면 0부터 그려져 선이 납작해졌다)
 const niceStep = (lo, hi) => { const c = []; for (let e = Math.floor(Math.log10(Math.max(1, hi - lo))) - 2; c.length < 40; e++) for (const m of [1, 2, 2.5, 5]) c.push(m * Math.pow(10, e));
   return c.find(st => Math.ceil(hi / st) - Math.floor(lo / st) <= 5) || c[c.length - 1]; };
-const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria }) => {
+const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria, band }) => {
+  // band: 면을 바닥이 아니라 기준선(ref)까지만 칠한다 — 시세와 이번 딜 사이의 차이가 곧 「싼 만큼」이다
   // pts: [{x: 0~1, v}] · me: pts 안의 이번 딜 번호 · ref: 가로 기준선 값(① 의 이번 딜 가격)
   const vs = pts.map(p => p.v).concat(ref > 0 ? [ref] : []);
   let lo = Math.min(...vs), hi = Math.max(...vs);
@@ -329,7 +331,7 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria 
   return `<div class="lc" style="--c:${color}" role="img" aria-label="${esc(aria)}"><div class="lc-plot">
 <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
 ${ticks.map(t => `<line x1="0" x2="100" y1="${Y(t).toFixed(2)}" y2="${Y(t).toFixed(2)}" class="lc-grid"/>`).join('')}
-<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} 100 L ${X(pts[0].x).toFixed(2)} 100 Z" class="lc-area"/>
+${band && ref > 0 ? `<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} ${Y(ref).toFixed(2)} L ${X(pts[0].x).toFixed(2)} ${Y(ref).toFixed(2)} Z" class="lc-band"/>` : `<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} 100 L ${X(pts[0].x).toFixed(2)} 100 Z" class="lc-area"/>`}
 ${ref > 0 ? `<line x1="0" x2="100" y1="${Y(ref).toFixed(2)}" y2="${Y(ref).toFixed(2)}" class="lc-ref"/>` : ''}
 <path d="${line}" class="lc-line"/></svg>
 ${ticks.map(t => `<span class="lc-y" style="top:${Y(t).toFixed(2)}%">${fmt(t)}</span>`).join('')}
@@ -493,11 +495,16 @@ const trendChart = d => {
   if (pts.length < 4 || new Set(pts.map(x => x.p)).size < 2) return '';
   const low = pts.reduce((a, b) => (b.p < a.p ? b : a));
   const mLabel = m => `${+m.slice(3)}월`;
-  return `<h3 style="margin:16px 0 2px;font-size:15px">이 상품의 1년 시세</h3><p class="note" style="margin:0 0 8px">같은 규격 상품이 달마다 가장 싸게 팔렸던 값을 이었어요. 빨간 가로선이 이번 딜 가격이에요.</p>`
-    + lineChart({ pts: pts.map((x, i) => ({ x: i / (pts.length - 1), v: x.p })), color: 'var(--mid)', aria: `월별 최저가 그래프, 가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}`,
-      lowLabel: `${mLabel(low.m)} 최저 ${won(low.p)}`, ref: d.price, refLabel: `이번 딜 ${won(d.price)}`,
+  // 결론 한 줄 — 평소 시세(달마다 최저값의 가운데)와 1년 최저를 이번 딜과 견준다
+  const ps = pts.map(x => x.p).sort((x, y) => x - y), usual = ps[ps.length >> 1], p = d.price;
+  const head = p < low.p ? `<b>1년 동안 이렇게 싼 적이 없어요.</b> 평소엔 ${won(usual)} 안팎이었고, 제일 쌌던 ${mLabel(low.m)}(${won(low.p)})보다도 <b>${won(low.p - p)} 더 싸요</b>.`
+    : p < usual ? `평소 시세(${won(usual)} 안팎)보다 <b>${won(usual - p)} 싸요</b>. 다만 ${mLabel(low.m)}엔 ${won(low.p)}까지 내려간 적이 있어요.`
+    : `이번 가격은 평소 시세(${won(usual)} 안팎)와 비슷하거나 조금 높아요. 제일 쌌던 건 ${mLabel(low.m)}의 ${won(low.p)}이었어요.`;
+  return `<h3 style="margin:18px 0 6px;font-size:15px">이 상품의 1년 시세</h3><p class="trend-head">${head}</p>`
+    + lineChart({ pts: pts.map((x, i) => ({ x: i / (pts.length - 1), v: x.p })), color: 'var(--mid)', band: p < usual, aria: `월별 최저가 그래프, 평소 ${won(usual)} 안팎, 이번 딜 ${won(p)}`,
+      lowLabel: `${mLabel(low.m)} 최저 ${won(low.p)}`, ref: p, refLabel: `이번 딜 ${won(p)}`,
       xs: [mLabel(pts[0].m), mLabel(pts[Math.floor((pts.length - 1) / 2)].m), mLabel(pts[pts.length - 1].m)] })
-    + `<p class="note">${pts.length < raw.length ? '구성이 달라 보이는 값은 뺐어요. ' : ''}달마다 가장 쌌던 한 순간의 값이라, 늘 그 값에 살 수 있었던 건 아니에요.</p>`;
+    + `<p class="note">회색 선은 같은 규격 상품이 달마다 가장 싸게 팔렸던 값, 빨간 선은 이번 딜 가격이에요.${p < usual ? ' 그 사이 빨간 칸이 이번 딜이 더 싼 만큼이에요.' : ''}${pts.length < raw.length ? ' 구성이 달라 보이는 값은 뺐어요.' : ''}</p>`;
 };
 // 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
 const compsTable = d => {
