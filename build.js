@@ -330,11 +330,10 @@ const spark = (arr, usc, uarr, me) => {
   const ts = ds.map(d => Date.parse(d.sentAt)), t0 = ts[0], t1 = ts[ts.length - 1];
   const pts = ds.map((d, i) => ({ x: t1 > t0 ? (ts[i] - t0) / (t1 - t0) : i / (ds.length - 1), v: val(d) }));
   const iMe = me ? ds.indexOf(me) : -1, low = Math.min(...pts.map(p => p.v));
-  const mid = ds[Math.floor((ds.length - 1) / 2)];
   const what = unit ? usc.label + ' ' : '';
   return lineChart({ pts, color: 'var(--brand)', aria: `${what}가격 기록 그래프, 가장 낮은 값 ${won(low)}`,
     lowLabel: `최저 ${what}${won(low)}`, me: iMe >= 0 ? iMe : null, meLabel: iMe >= 0 && pts[iMe].v !== low ? `이번 ${won(pts[iMe].v)}` : '',
-    xs: [dateShort(ds[0].sentAt), ds.length > 2 && t1 - t0 > 20 * 864e5 ? dateShort(mid.sentAt) : '', dateShort(ds[ds.length - 1].sentAt)] })
+    xs: [dateShort(ds[0].sentAt), t1 - t0 > 20 * 864e5 ? dateShort(new Date((t0 + t1) / 2 + 9 * 3600e3).toISOString()) : '', dateShort(ds[ds.length - 1].sentAt)] })
     + (iMe >= 0 && pts[iMe].v === low ? '<p class="note">이번 딜이 이 기록에서 가장 낮은 값이에요.</p>' : '')
     + (unit && !me ? `<p class="note">용량이 달라 ${usc.label} 가격으로 그렸어요.</p>` : '');
 };
