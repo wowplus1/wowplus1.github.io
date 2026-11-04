@@ -490,7 +490,7 @@ const trendChart = d => {
   if (pts.length < 4 || new Set(pts.map(x => x.p)).size < 2) return '';
   const low = pts.reduce((a, b) => (b.p < a.p ? b : a));
   const mLabel = m => `${+m.slice(3)}월`;
-  return `<h3 style="margin:16px 0 2px;font-size:15px">① 이 상품의 1년 시세</h3><p class="note" style="margin:0 0 8px">같은 규격 상품이 시장에서 달마다 가장 싸게 팔린 값을 이었어요. 가로선은 이번 딜 가격이에요.</p>`
+  return `<h3 style="margin:16px 0 2px;font-size:15px">이 상품의 1년 시세</h3><p class="note" style="margin:0 0 8px">같은 규격 상품이 시장에서 달마다 가장 싸게 팔린 값을 이었어요. 가로선은 이번 딜 가격이에요.</p>`
     + lineChart({ pts: pts.map((x, i) => ({ x: i / (pts.length - 1), v: x.p })), color: 'var(--mid)', aria: `월별 최저가 그래프, 가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}`,
       lowLabel: `${mLabel(low.m)} 최저 ${won(low.p)}`, ref: d.price, refLabel: `이번 딜 ${won(d.price)}`,
       xs: [mLabel(pts[0].m), mLabel(pts[Math.floor((pts.length - 1) / 2)].m), mLabel(pts[pts.length - 1].m)] })
@@ -563,7 +563,7 @@ const freqBox = d => {
   const gp = gw ? byKw[gw].map(x => x.price).filter(p => p > 0) : [];
   const chart = ug ? spark(ug.arr, ug.sc, ug.arr, d) : gw && Math.max(...gp) <= 3 * Math.min(...gp) ? spark(byKw[gw], null, null, d) : '';
   const cw = ug ? ug.w : gw, cn = ug ? ug.arr.length : gw ? byKw[gw].length : 0;
-  return `<section class="about"><h2>${head}</h2><p style="line-height:1.85">${text}<br>이번 가격을 놓쳤다면 다음 딜은 카톡방에서 먼저 받아 볼 수 있어요.</p>${chart ? `<h3 style="margin:14px 0 2px;font-size:15px">${verifyBox(d).includes('이 상품의 1년 시세') ? '② ' : ''}핫딜베스트가 고른 ${esc(cw)} 딜 ${cn}건${ug ? ` (${ug.sc.label})` : ''}</h3><p class="note" style="margin:0 0 8px">이 상품 하나가 아니라, 이름에 「${esc(cw)}」 단어가 들어간 딜을 고른 날짜순으로 이었어요${ug ? `. 용량이 달라 ${ug.sc.label} 가격으로 바꿨어요` : ''}.</p>${chart}` : ''}</section>`;
+  return `<section class="about"><h2>${head}</h2><p style="line-height:1.85">${text}<br>이번 가격을 놓쳤다면 다음 딜은 카톡방에서 먼저 받아 볼 수 있어요.</p>${chart ? `<h3 style="margin:14px 0 2px;font-size:15px">${verifyBox(d).includes('이 상품의 1년 시세</h3>') ? '② ' : ''}핫딜베스트가 고른 ${esc(cw)} 딜 ${cn}건${ug ? ` (${ug.sc.label})` : ''}</h3><p class="note" style="margin:0 0 8px">이 상품 하나가 아니라, 이름에 「${esc(cw)}」 단어가 들어간 딜을 고른 날짜순으로 이었어요${ug ? `. 용량이 달라 ${ug.sc.label} 가격으로 바꿨어요` : ''}.</p>${chart}` : ''}</section>`;
 };
 
 const about = (d, kws) => {
@@ -634,7 +634,9 @@ ${catOf(d).filter(c => CATL.includes(c)).length ? `<h2>분류</h2><ul class="chi
 ${kws.length ? `<h2>같은 품목 가격 기록</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}건</em></a></li>`).join('')}</ul>` : ''}
 ${related.length ? `<h2>비슷한 딜</h2>${grid(related)}` : ''}
 ${sameMall.length ? `<h2>${esc(d.mall)} 최근 딜</h2>${grid(sameMall)}` : ''}`;
-  write(decodeURIComponent(dealUrl(d)).slice(1) + 'index.html', page({ title: `${d.title} ${won(d.price)} 핫딜 - ${SITE}`, desc, canon: dealUrl(d), body, img: d.image,
+  // 그래프가 둘 다 있을 때만 ①② 번호를 단다 (하나뿐인데 ① 이 붙어 있었다)
+  const bodyN = body.includes('② 핫딜베스트가 고른') ? body.replace('>이 상품의 1년 시세</h3>', '>① 이 상품의 1년 시세</h3>') : body;
+  write(decodeURIComponent(dealUrl(d)).slice(1) + 'index.html', page({ title: `${d.title} ${won(d.price)} 핫딜 - ${SITE}`, desc, canon: dealUrl(d), body: bodyN, img: d.image,
     crumbs: [['홈', '/'], [d.mall, url('mall', d.mall)], [d.title, dealUrl(d)]] }));
   add(dealUrl(d), kst(d.sentAt).ymd);
   if (decodeURIComponent(dealUrl(d)) !== `/deal/${d.uid}/`) write(`deal/${d.uid}/index.html`, `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="robots" content="noindex"><link rel="canonical" href="${BASE}${dealUrl(d)}"><meta http-equiv="refresh" content="0;url=${dealUrl(d)}"><title>${esc(d.title)}</title></head><body><a href="${dealUrl(d)}">${esc(d.title)}</a></body></html>`);
