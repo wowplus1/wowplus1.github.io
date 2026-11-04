@@ -507,7 +507,7 @@ const trendChart = d => {
   return `<h3 style="margin:18px 0 6px;font-size:15px">이 상품의 1년 시세</h3><p class="trend-head">${head}</p>`
     + lineChart({ pts: [...pts.map((x, i) => ({ x: i / pts.length, v: x.p })), { x: 1, v: p }], color: 'var(--mid)', tail: true, aria: `월별 최저가 그래프, 평소 ${won(usual)} 안팎, 이번 딜 ${won(p)}`,
       lowLabel: `${mLabel(low.m)} 최저 ${won(low.p)}`, me: pts.length, meLabel: `이번 딜 ${won(p)}`,
-      xs: [...pts.map((x, i) => ({ x: i / pts.length, t: mLabel(x.m) })).filter((o, i) => i % 2 === 0 && i < pts.length - 1), { x: 1, t: '이번 딜', me: true }] })
+      xs: [...pts.map((x, i) => ({ x: i / pts.length, t: mLabel(x.m) })).filter((o, i) => i % 2 === 0 && o.x < 0.75), { x: 1, t: '이번 딜', me: true }]   // 「이번 딜」은 오른쪽 끝에 붙어 넓으니 그 앞 4분의 1에는 달 이름을 안 둔다 (폰에서 「10월이번 딜」로 붙었다) })
     + `<p class="note">회색 선은 같은 규격 상품이 달마다 가장 싸게 팔렸던 값이고, 맨 끝 빨간 점선이 이번 딜 가격이에요.${pts.length < raw.length ? ' 구성이 달라 보이는 값은 뺐어요.' : ''}</p>`;
 };
 // 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
