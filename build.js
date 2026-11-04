@@ -158,7 +158,9 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .why h2{margin:0 0 2px}.why .note{margin:0}
 @media (min-width:760px){.why .flow{grid-template-columns:repeat(3,1fr);gap:16px}}
 .chips a{display:inline-flex;align-items:center;gap:5px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13.5px;text-decoration:none}
-.chips a:hover{border-color:var(--ink)}.chips a em{font-style:normal;color:var(--dim);font-size:12px}
+.chips a:hover{border-color:var(--ink)}
+.specs li{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;color:var(--mid)}
+.vlist{margin:0;padding-left:18px;color:var(--mid);line-height:1.9}.chips a em{font-style:normal;color:var(--dim);font-size:12px}
 /* 카드 목록 */
 .grid{display:grid;gap:10px;padding:0;margin:0;list-style:none;grid-template-columns:1fr}
 @media (min-width:640px){.grid{grid-template-columns:1fr 1fr}}
@@ -398,6 +400,36 @@ const unitTable = (arr, sc, me) => `<div class="tbl"><table><thead><tr><th>날�
 ${arr.map((x, i) => `<tr${x === me || (!me && i === 0) ? ' class="low"' : ''}><td>${dateShort(x.sentAt)}</td><td>${x === me ? `<b>${esc(x.title)}</b> (이번)` : `<a href="${dealUrl(x)}">${esc(x.title)}</a>`}</td><td class="r">${won(x.price)}</td><td class="r">${unitWon(x, sc)}</td></tr>`).join('')}
 </tbody></table></div>`;
 
+// 보낸 시점의 검증 기록 (11/4) — 카톡 메시지와 같은 재료를 피드가 넘겨준다 (feed-push.js entryOf: check·hist·review·spec·alt·unit).
+// 우리 판단을 덧붙이지 않는다. 다나와가 보여준 값을 그 시점 기록으로 옮길 뿐이다. 피드에 없으면 칸을 안 만든다
+const HIST_TERM = { 12: '1년', 6: '6개월', 3: '3개월', 1: '한 달' };
+const verifyBox = d => {
+  const li = [];
+  const c = d.check;
+  if (c && c.market > 0) {
+    const ship = c.ship === 0 ? ' (무료배송)' : c.ship > 0 ? ` (배송비 ${won(c.ship)} 별도)` : (c.delivered > c.market ? ` (배송비까지 치면 ${won(c.delivered)})` : '');
+    li.push(`다나와에서 같은 규격을 ${c.malls > 1 ? `${c.malls}곳이 팔고 있었고, 그중 최저가는` : '파는 곳은 한 곳, 가격은'} <b>${won(c.market)}</b>이었습니다${ship}.`);
+  } else if (d.alt && d.alt.price > 0) {
+    li.push(`다른 곳 가격은 ${won(d.alt.price)}이었습니다${d.alt.where ? ` (${esc(d.alt.where)})` : ''}. 차이가 작아 할인율은 따로 적지 않았어요.`);
+  }
+  const h = d.hist;
+  if (h && h.months) {
+    const term = HIST_TERM[h.months] || `${h.months}개월`;
+    li.push(h.cheaper ? `다나와 가격 기록으로 ${term} 안에서 <b>가장 싼 값</b>이었습니다.`
+      : h.low > 0 ? `그때 시세보다는 쌌지만, 다나와 가격 기록으로 ${term} 사이 <b>${won(h.low)}</b>까지 내려간 적이 있습니다.` : '');
+  }
+  const r = d.review;
+  if (r && r.count >= 100) li.push(`상품평 ${Number(r.count).toLocaleString('ko-KR')}개, 평균 ${r.score}점${r.low > 0 ? ` (낮은 별점 ${Number(r.low).toLocaleString('ko-KR')}개)` : ' (낮은 별점 없음)'}.`);
+  const u = d.unit && typeof d.unit === 'object' && d.unit.value > 0 ? d.unit : null;
+  if (u) li.push(`${esc(u.label)} ${won(u.value)}.`);
+  const items = li.filter(Boolean);
+  const spec = Array.isArray(d.spec) ? d.spec.filter(Boolean) : [];
+  if (!items.length && !spec.length) return '';
+  return `<section class="about"><h2>보낸 시점에 확인한 것</h2>${items.length ? `<ul class="vlist">${items.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
+${spec.length ? `<p style="margin:12px 0 6px">제조사 표기 스펙 (다나와)</p><ul class="chips specs">${spec.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+<p class="note">${dateTime(d.sentAt)}에 ${d.web ? '사이트에 올리면서' : '카톡방에 보내면서'} 함께 확인한 값입니다. 지금은 다를 수 있어요.</p></section>`;
+};
+
 const about = (d, kws) => {
   const t = kst(d.sentAt);
   const parts = [`${esc(d.title)}${은는(d.title)} ${t.y}년 ${t.mo}월 ${t.d}일 ${t.h}:${t.mi}에 ${esc(d.mall)}에서 ${won(d.price)}에 올라온 딜입니다.`];
@@ -454,6 +486,7 @@ ${cmp}
 <p class="warn"><b>⚠ ${dateTime(d.sentAt)} 기준 가격이에요</b><span>가격이 달라졌다면 이미 끝난 딜입니다. 구매 전 판매처 가격을 꼭 확인하세요.</span></p>
 <div class="stack">${buyLink(d)}</div>
 </div></div>
+${verifyBox(d)}
 <section class="about"><h2>이 딜에 대해</h2><p style="line-height:1.85">${about(d, kws)}</p></section>
 ${unitSec}
 ${d.earlier && d.earlier.length ? `<h2>이 상품, 전에 보낸 가격</h2><div class="tbl"><table><thead><tr><th>보낸 시각</th><th class="r">가격</th><th class="r">다른 곳</th></tr></thead><tbody>
