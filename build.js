@@ -685,7 +685,10 @@ ${months.map(k => { const a = byMonth[k], lo = a.reduce((x, y) => (y.price > 0 &
   const unitBox = usc ? `<h2>${usc.label} 가격으로 줄 세우면? <small>${uarr.length}개</small></h2>
 <p>상품마다 용량·개수가 달라서 ${usc.label} 가격으로 바꿔 줄 세웠어요. 제일 싼 건 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)}, ${esc(uarr[0].mall)})이에요.</p>
 ${unitTable(uarr.slice(0, 15), usc, null)}<p class="note">용량·개수는 상품 이름에서 읽었어요. 이름만으로 단가를 알 수 없는 딜은 빠져 있어요.</p>` : '';
-  const chart = spark(arr, usc, uarr), fq = freqOf(appearOf(arr));
+  // 「가격은 어떻게 움직였을까?」 는 같은 종류 상품끼리일 때만 — 품목 이름(라면·텀블러) 페이지이거나, 단가가 1.8배 안에 모일 때(코카콜라 L당 1.4배).
+  // 브랜드 이름으로만 묶이면(농심: 칼국수·감자면, 단가 2.4배) 다른 상품을 이은 선이 「값이 올랐다」로 읽힌다 (11/4)
+  const sameKind = TYPE_WORDS.has(w) || (usc && Math.max(...uarr.map(x => UNITS.get(x.uid).per)) <= 1.8 * Math.min(...uarr.map(x => UNITS.get(x.uid).per)));
+  const chart = sameKind ? spark(arr, usc, uarr) : '', fq = freqOf(appearOf(arr));
   const body = `<h1>${esc(w)} 핫딜·가격 기록</h1>
 <p class="lead">핫딜베스트가 고른 <b>${esc(w)}</b> 딜, 지금까지 <b>${arr.length}개</b>예요.${fq.gap ? ` ${dateShort(fq.first)}부터 평균 <b>${fq.gap}일</b>에 한 번꼴로 떴어요.` : ''}</p>
 <p class="lead">그중 제일 쌌던 건 ${dateShort(min.sentAt)} ${esc(min.mall)}의 <span class="hl">${won(min.price)}</span>이에요.${usc ? ` 다만 용량이 제각각이라, ${usc.label} 가격으로 따지면 ${dateShort(uarr[0].sentAt)}의 <span class="hl">${unitWon(uarr[0], usc)}</span>이 제일 쌌어요.` : ' 상품 구성이 서로 달라서 가격만으로 비교하긴 어려워요.'}</p>
