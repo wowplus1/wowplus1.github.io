@@ -207,7 +207,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .lc-line{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .lc-ref{stroke:var(--ink);stroke-opacity:.45;stroke-width:1;vector-effect:non-scaling-stroke}
 .lc-y{position:absolute;left:-46px;width:40px;text-align:right;transform:translateY(-50%);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
-.lc-dot{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px var(--paper);opacity:.6}
+.lc-dot{position:absolute;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px var(--paper);opacity:.6}
 .lc-dot.low{width:10px;height:10px;margin:-5px 0 0 -5px;opacity:1}
 .lc-dot.me{width:12px;height:12px;margin:-6px 0 0 -6px;opacity:1;background:var(--paper);box-shadow:0 0 0 2.5px var(--ink),0 0 0 5px var(--paper)}
 .lc-lab{position:absolute;transform:translate(-50%,calc(-100% - 9px));font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;background:var(--paper);padding:0 3px;border-radius:4px;line-height:1.5}
@@ -289,7 +289,8 @@ const buyLink = d => {
 // 눈금 간격 — 1·2·2.5·5 의 10배수 중, 칸이 5개 이하가 되는 가장 촘촘한 것 (필립스 18만~51만: 20만 간격이면 0부터 그려져 선이 납작해졌다)
 const niceStep = (lo, hi) => { const c = []; for (let e = Math.floor(Math.log10(Math.max(1, hi - lo))) - 2; c.length < 40; e++) for (const m of [1, 2, 2.5, 5]) c.push(m * Math.pow(10, e));
   return c.find(st => Math.ceil(hi / st) - Math.floor(lo / st) <= 5) || c[c.length - 1]; };
-const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria }) => {
+const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria, dotsOnly }) => {
+  // dotsOnly: 서로 다른 상품을 가격 그대로 찍을 때(오뚜기 2,180원 소스 ↔ 2.5만 원 묶음) — 선으로 이으면 오르내림처럼 읽혀서 점만 찍는다
   // pts: [{x: 0~1, v}] · me: pts 안의 이번 딜 번호 · ref: 가로 기준선 값(① 의 이번 딜 가격)
   const vs = pts.map(p => p.v).concat(ref > 0 ? [ref] : []);
   let lo = Math.min(...vs), hi = Math.max(...vs);
@@ -304,14 +305,14 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria 
   const fmt = n => n >= 1e5 ? Math.round(n / 1e4) + '만' : n >= 1e4 ? +(n / 1e4).toFixed(1) + '만' : Math.round(n).toLocaleString('ko-KR');
   const lab = (i, text, cls) => { const x = X(pts[i].x), y = Y(pts[i].v); const side = x < 14 ? ' l' : x > 86 ? ' r' : '';
     return `<span class="lc-lab ${cls}${side}${y < 26 && !/below/.test(cls) ? ' below' : ''}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">${text}</span>`; };
-  const dots = pts.length <= 16 ? pts.map((p, i) => i === iLow || i === me ? '' : `<i class="lc-dot" style="left:${X(p.x).toFixed(2)}%;top:${Y(p.v).toFixed(2)}%"></i>`).join('') : '';
+  const dots = dotsOnly || pts.length <= 16 ? pts.map((p, i) => i === iLow || i === me ? '' : `<i class="lc-dot" style="left:${X(p.x).toFixed(2)}%;top:${Y(p.v).toFixed(2)}%"></i>`).join('') : '';
   const close = me != null && me !== iLow && Math.abs(X(pts[me].x) - X(pts[iLow].x)) < 16;
   return `<div class="lc" style="--c:${color}" role="img" aria-label="${esc(aria)}"><div class="lc-plot">
 <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
 ${ticks.map(t => `<line x1="0" x2="100" y1="${Y(t).toFixed(2)}" y2="${Y(t).toFixed(2)}" class="lc-grid"/>`).join('')}
-<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} 100 L ${X(pts[0].x).toFixed(2)} 100 Z" class="lc-area"/>
+${dotsOnly ? '' : `<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} 100 L ${X(pts[0].x).toFixed(2)} 100 Z" class="lc-area"/>`}
 ${ref > 0 ? `<line x1="0" x2="100" y1="${Y(ref).toFixed(2)}" y2="${Y(ref).toFixed(2)}" class="lc-ref"/>` : ''}
-<path d="${line}" class="lc-line"/></svg>
+${dotsOnly ? '' : `<path d="${line}" class="lc-line"/>`}</svg>
 ${ticks.map(t => `<span class="lc-y" style="top:${Y(t).toFixed(2)}%">${fmt(t)}</span>`).join('')}
 ${dots}<i class="lc-dot low" style="left:${X(pts[iLow].x).toFixed(2)}%;top:${Y(pts[iLow].v).toFixed(2)}%"></i>
 ${me != null && me !== iLow ? `<i class="lc-dot me" style="left:${X(pts[me].x).toFixed(2)}%;top:${Y(pts[me].v).toFixed(2)}%"></i>` : ''}
@@ -331,11 +332,13 @@ const spark = (arr, usc, uarr, me) => {
   const pts = ds.map((d, i) => ({ x: t1 > t0 ? (ts[i] - t0) / (t1 - t0) : i / (ds.length - 1), v: val(d) }));
   const iMe = me ? ds.indexOf(me) : -1, low = Math.min(...pts.map(p => p.v));
   const what = unit ? usc.label + ' ' : '';
-  return lineChart({ pts, color: 'var(--brand)', aria: `${what}가격 기록 그래프, 가장 낮은 값 ${won(low)}`,
+  const vals = pts.map(p => p.v), dotsOnly = !unit && Math.max(...vals) > 3 * Math.min(...vals);
+  return lineChart({ pts, color: 'var(--brand)', dotsOnly, aria: `${what}가격 기록 그래프, 가장 낮은 값 ${won(low)}`,
     lowLabel: `최저 ${what}${won(low)}`, me: iMe >= 0 ? iMe : null, meLabel: iMe >= 0 && pts[iMe].v !== low ? `이번 ${won(pts[iMe].v)}` : '',
     xs: [dateShort(ds[0].sentAt), t1 - t0 > 20 * 864e5 ? dateShort(new Date((t0 + t1) / 2 + 9 * 3600e3).toISOString()) : '', dateShort(ds[ds.length - 1].sentAt)] })
     + (iMe >= 0 && pts[iMe].v === low ? '<p class="note">이번 딜이 이 기록에서 가장 낮은 값이에요.</p>' : '')
-    + (unit && !me ? `<p class="note">용량이 달라 ${usc.label} 가격으로 그렸어요.</p>` : '');
+    + (unit && !me ? `<p class="note">용량이 달라 ${usc.label} 가격으로 그렸어요.</p>` : '')
+    + (dotsOnly ? '<p class="note">상품 구성이 서로 많이 달라 선으로 잇지 않고 딜마다 점으로만 찍었어요.</p>' : '');
 };
 
 // 홈의 「최근 보낸 딜」 을 실시간으로 채운다 (lp/02 와 같은 파이어베이스 경로).
