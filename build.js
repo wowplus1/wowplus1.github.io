@@ -403,6 +403,37 @@ ${arr.map((x, i) => `<tr${x === me || (!me && i === 0) ? ' class="low"' : ''}><t
 // 보낸 시점의 검증 기록 (11/4) — 카톡 메시지와 같은 재료를 피드가 넘겨준다 (feed-push.js entryOf: check·hist·review·spec·alt·unit).
 // 우리 판단을 덧붙이지 않는다. 다나와가 보여준 값을 그 시점 기록으로 옮길 뿐이다. 피드에 없으면 칸을 안 만든다
 const HIST_TERM = { 12: '1년', 6: '6개월', 3: '3개월', 1: '한 달' };
+// 1년 가격 흐름 (피드 trend = 다나와 월별 최저가). 구성이 다른 값이 섞이므로(신라면 40개 묶음 2만 원대 사이에 1,090원)
+// 중앙값의 1/3 아래·3배 위는 빼고, 남은 게 4개 미만이거나 값이 다 같으면(등록 직후) 안 그린다
+const trendChart = d => {
+  const raw = Array.isArray(d.trend) ? d.trend.filter(x => x && /^[0-9]{2}-[0-9]{2}$/.test(x.m) && x.p > 0) : [];
+  if (raw.length < 4) return '';
+  const sorted = raw.map(x => x.p).sort((a, b) => a - b), med = sorted[sorted.length >> 1];
+  const pts = raw.filter(x => x.p >= med / 3 && x.p <= med * 3);
+  if (pts.length < 4 || new Set(pts.map(x => x.p)).size < 2) return '';
+  const W = 600, H = 150, P = 14, ps = pts.map(x => x.p).concat(d.price > 0 ? [d.price] : []);
+  const lo = Math.min(...ps), hi = Math.max(...ps), span = hi - lo || 1;
+  const X = i => P + (W - 2 * P) * i / (pts.length - 1), Y = v => P + (H - 2 * P) * (1 - (v - lo) / span);
+  const line = pts.map((x, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(x.p).toFixed(1)).join(' ');
+  const low = pts.reduce((a, b) => (b.p < a.p ? b : a));
+  const mLabel = m => `${+m.slice(3)}월`;
+  const ours = d.price > 0 ? `<line x1="${P}" x2="${W - P}" y1="${Y(d.price).toFixed(1)}" y2="${Y(d.price).toFixed(1)}" stroke="var(--brand)" stroke-dasharray="6 5" stroke-width="1.5" vector-effect="non-scaling-stroke"/>` : '';
+  return `<h3 style="margin:16px 0 6px;font-size:15px">1년 가격 흐름 <small style="color:var(--dim);font-weight:400">다나와 월별 최저가 · 점선은 이번 딜 ${won(d.price)}</small></h3>
+<div class="spark" role="img" aria-label="월별 최저가 그래프, 가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+${ours}<path d="${line}" fill="none" stroke="var(--dim)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+${pts.map((x, i) => `<circle cx="${X(i)}" cy="${Y(x.p)}" r="${x === low ? 5 : 3}" fill="${x === low ? 'var(--ink)' : 'var(--paper)'}" stroke="var(--dim)" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join('')}</svg>
+<div class="lbl"><span>${mLabel(pts[0].m)}</span><span>가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}</span><span>${mLabel(pts[pts.length - 1].m)}</span></div></div>
+<p class="note">${pts.length < raw.length ? '구성이 다른 것으로 보이는 값은 뺐습니다. ' : ''}월별 최저가는 그 달 가장 낮았던 한 순간의 값이에요.</p>`;
+};
+// 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
+const compsTable = d => {
+  const cs = Array.isArray(d.comps) ? d.comps.filter(c => c && c.price > 0).slice(0, 4) : [];
+  if (!cs.length || !(d.price > 0)) return '';
+  return `<h3 style="margin:16px 0 6px;font-size:15px">보낸 시점 다른 곳 가격</h3><div class="tbl"><table><thead><tr><th>어디</th><th class="r">가격</th><th class="r">이번 딜과 차이</th></tr></thead><tbody>
+<tr class="low"><td><b>이번 딜</b> · ${esc(d.mall)}</td><td class="r">${won(d.price)}</td><td class="r">–</td></tr>
+${cs.map(c => `<tr><td>${esc(c.name || '다른 곳')}</td><td class="r">${won(c.price)}</td><td class="r">${c.price > d.price ? '+' + won(c.price - d.price) : c.price < d.price ? '−' + won(d.price - c.price) : '같음'}</td></tr>`).join('')}
+</tbody></table></div>`;
+};
 const verifyBox = d => {
   const li = [];
   const c = d.check;
@@ -424,9 +455,11 @@ const verifyBox = d => {
   if (u) li.push(`${esc(u.label)} ${won(u.value)}.`);
   const items = li.filter(Boolean);
   const spec = Array.isArray(d.spec) ? d.spec.filter(Boolean) : [];
-  if (!items.length && !spec.length) return '';
+  const extra = compsTable(d) + trendChart(d);
+  if (!items.length && !spec.length && !extra) return '';
   return `<section class="about"><h2>보낸 시점에 확인한 것</h2>${items.length ? `<ul class="vlist">${items.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
 ${spec.length ? `<p style="margin:12px 0 6px">제조사 표기 스펙</p><ul class="chips specs">${spec.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+${extra}
 <p class="note">${dateTime(d.sentAt)}에 ${d.web ? '사이트에 올리면서' : '카톡방에 보내면서'} 함께 확인한 값입니다. 지금은 다를 수 있어요.</p></section>`;
 };
 
