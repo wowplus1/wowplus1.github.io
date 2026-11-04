@@ -669,7 +669,10 @@ ${sameMall.length ? `<h2>${esc(d.mall)}에서 최근에 뜬 딜</h2>${grid(sameM
 e.textContent=' · '+(m<5?'방금 전':m<60?Math.floor(m)+'분 전':m<1440?Math.floor(m/60)+'시간 전':Math.floor(m/1440)+'일 전');})();</script>`;
   // 그래프가 둘 다 있을 때만 ①② 번호를 단다 (하나뿐인데 ① 이 붙어 있었다)
   const bodyN = body.includes('② 핫딜베스트가 고른') ? body.replace('>이 상품의 1년 시세</h3>', '>① 이 상품의 1년 시세</h3>') : body;
-  write(decodeURIComponent(dealUrl(d)).slice(1) + 'index.html', page({ title: `${d.title} ${won(d.price)} 핫딜 - ${SITE}`, desc, canon: dealUrl(d), body: bodyN, img: d.image,
+  // 제목: 「상품 최저가 2,600원 (개당 520원)」. 단가는 위 상자에 보이는 값(피드 unit)이 먼저, 없으면 같은 품목 순위표의 단가
+  const tUnit = d.unit && d.unit.value > 0 && d.unit.label ? `${d.unit.label} ${won(d.unit.value)}` : ug ? `${ug.sc.label} ${unitWon(d, ug.sc)}` : '';
+  const title = `${d.title} ${d.baseline > d.price ? '최저가 ' : ''}${won(d.price)}${tUnit ? ` (${tUnit})` : ''}${d.baseline > d.price ? '' : ' 핫딜'} - ${SITE}`;
+  write(decodeURIComponent(dealUrl(d)).slice(1) + 'index.html', page({ title, desc, canon: dealUrl(d), body: bodyN, img: d.image,
     crumbs: [['홈', '/'], [d.mall, url('mall', d.mall)], [d.title, dealUrl(d)]] }));
   add(dealUrl(d), kst(d.sentAt).ymd);
   if (decodeURIComponent(dealUrl(d)) !== `/deal/${d.uid}/`) write(`deal/${d.uid}/index.html`, `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="robots" content="noindex"><link rel="canonical" href="${BASE}${dealUrl(d)}"><meta http-equiv="refresh" content="0;url=${dealUrl(d)}"><title>${esc(d.title)}</title></head><body><a href="${dealUrl(d)}">${esc(d.title)}</a></body></html>`);
@@ -714,7 +717,7 @@ ${arr.map(d => `<tr${d === min ? ' class="low"' : ''}><td>${dateTime(d.sentAt)}<
 </tbody></table></div>
 ${join}
 <h2>${esc(w)} 딜 한눈에 보기</h2>${grid(arr)}`;
-  write(`k/${w}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${w} 핫딜 기록`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) }, title: `${w} 핫딜·최저가 기록 - ${SITE}`, desc: `핫딜베스트가 고른 ${w} 핫딜 ${arr.length}건과 날짜별 가격. 가장 낮았던 가격 ${won(min.price)}.` + (usc ? ` ${usc.label} 가장 쌌던 가격 ${unitWon(uarr[0], usc)}.` : ''),
+  write(`k/${w}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${w} 핫딜 기록`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) }, title: `${w} 최저가·핫딜 기록${usc ? ` (${usc.label} 최저 ${unitWon(uarr[0], usc)})` : ''} - ${SITE}`, desc: `핫딜베스트가 고른 ${w} 핫딜 ${arr.length}건과 날짜별 가격. 가장 낮았던 가격 ${won(min.price)}.` + (usc ? ` ${usc.label} 가장 쌌던 가격 ${unitWon(uarr[0], usc)}.` : ''),
     canon: url('k', w), body, img: min.image, crumbs: [['홈', '/'], ['품목별', '/k/'], [w, url('k', w)]] }));
   add(url('k', w), kst(arr[0].sentAt).ymd);
 }
@@ -733,14 +736,48 @@ for (const c of CATL) {
   const kws = Object.keys(kc).filter(w => kc[w] >= 2 && w !== c).sort((a, b) => kc[b] - kc[a]).slice(0, 18);
   const saves = arr.filter(d => d.saving > 0);
   const avg = saves.length ? Math.round(saves.reduce((t, d) => t + d.saving, 0) / saves.length) : 0;
+  // 단가 순위 — 분류 안의 품목 이름(생수·샴푸·햇반)마다, 같은 단위로 3개 이상 모이고 단가가 4배 안에 들 때만. 많은 품목부터 3개까지
+  const ugs = Object.keys(kc).filter(w => TYPE_WORDS.has(w) && w !== c).map(w => {
+    const bases = {};
+    for (const d of arr) if (kwOf(d).includes(w)) { const u = UNITS.get(d.uid); if (u) (bases[u.base] = bases[u.base] || []).push(d); }
+    const ub = Object.values(bases).sort((a, b) => b.length - a.length)[0] || [];
+    return { w, arr: ub.length >= 3 && unitSpreadOk(ub) ? ub.slice().sort((a, b) => UNITS.get(a.uid).per - UNITS.get(b.uid).per) : [] };
+  }).filter(g => g.arr.length).sort((a, b) => b.arr.length - a.arr.length).slice(0, 3);
+  const unitBox = ugs.length ? `<h2>${esc(c)}, 단가로 줄 세우면?</h2>
+<p>용량·개수가 제각각이라 품목마다 같은 단위 가격으로 바꿔 봤어요.</p>
+${ugs.map(g => { const sc = unitScale(g.arr); return `<h3 style="margin:16px 0 6px;font-size:15px"><a href="${url('k', g.w)}">${esc(g.w)}</a> ${sc.label} 싼 순서 <small>${g.arr.length}개 중</small></h3>${unitTable(g.arr.slice(0, 5), sc, null)}`; }).join('')}
+<p class="note">용량·개수는 상품 이름에서 읽었어요. 이름만으로 단가를 알 수 없는 딜은 빠져 있어요.</p>` : '';
+  // 많이 쌌던 딜 — 같은 때 다른 곳보다 몇 % 쌌나. 5개
+  const top = saves.slice().sort((a, b) => b.saving - a.saving).slice(0, 5);
+  const topBox = top.length >= 3 ? `<h2>다른 곳보다 많이 쌌던 ${esc(c)} 딜</h2><div class="tbl"><table><thead><tr><th>날짜</th><th>상품</th><th class="r">가격</th><th class="r">다른 곳</th></tr></thead><tbody>
+${top.map(d => `<tr><td>${dateShort(d.sentAt)}</td><td><a href="${dealUrl(d)}">${esc(d.title)}</a></td><td class="r">${won(d.price)} <span class="hl">${d.saving}%↓</span></td><td class="r">${won(d.baseline)}</td></tr>`).join('')}
+</tbody></table></div><p class="note">「다른 곳」은 딜을 보낸 때 함께 확인한 가격이에요.</p>` : '';
+  // 달마다 — 몇 개 떴고 평균 얼마나 쌌나, 그달 제일 많이 싼 딜
+  const byMonth = {};
+  for (const d of arr) { const t = kst(d.sentAt); const k = `${t.y}-${String(t.mo).padStart(2, '0')}`; (byMonth[k] = byMonth[k] || []).push(d); }
+  const months = Object.keys(byMonth).sort().reverse();
+  const monthBox = months.length >= 2 ? `<h2>달마다 몇 개나 떴을까?</h2><div class="tbl"><table><thead><tr><th>달</th><th class="r">딜</th><th class="r">평균 할인</th><th>그달 제일 많이 싼 딜</th></tr></thead><tbody>
+${months.map(k => { const a = byMonth[k], sv = a.filter(x => x.saving > 0), b = sv.slice().sort((x, y) => y.saving - x.saving)[0];
+    return `<tr><td>${+k.slice(5)}월</td><td class="r">${a.length}개</td><td class="r">${sv.length ? Math.round(sv.reduce((t, x) => t + x.saving, 0) / sv.length) + '%' : '–'}</td><td>${b ? `<a href="${dealUrl(b)}">${esc(b.title)}</a> ${b.saving}%↓` : '–'}</td></tr>`; }).join('')}
+</tbody></table></div>` : '';
+  // 어디서 떴나
+  const mc = {};
+  for (const d of arr) mc[d.mall] = (mc[d.mall] || 0) + 1;
+  const malls = Object.keys(mc).sort((a, b) => mc[b] - mc[a]);
+  const mallLine = malls.length >= 2 ? `<p>판매처는 ${malls.slice(0, 4).map(m => `${esc(m)} ${mc[m]}개`).join(', ')}${malls.length > 4 ? ' 순이에요' : '예요'}.</p>` : '';
+  const fq = freqOf(appearOf(arr));
   const body = `<h1>${esc(c)} 핫딜·최저가 모음</h1>
 <p class="lead">핫딜베스트가 다른 곳 가격과 비교해서 고른 <b>${esc(c)}</b> 딜, 지금까지 <b>${arr.length}개</b>예요.${d30 ? ` 최근 한 달 사이에만 ${d30}개가 떴어요.` : ''}</p>
-<p class="lead">${avg ? `같은 때 다른 곳보다 평균 <span class="hl">${avg}%</span> 쌌어요. ` : ''}가격은 뜬 때 기준이라 지금은 다를 수 있어요.</p>
+<p class="lead">${avg ? `같은 때 다른 곳보다 평균 <span class="hl">${avg}%</span> 쌌어요. ` : ''}${fq.gap ? `평균 <b>${fq.gap}일</b>에 한 번꼴로 떴고, ` : ''}가격은 뜬 때 기준이라 지금은 다를 수 있어요.</p>
 ${kws.length ? `<h2>${esc(c)} 중에 자주 뜬 건?</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${kc[w]}</em></a></li>`).join('')}</ul>` : ''}
+${mallLine}
+${unitBox}
+${topBox}
+${monthBox}
 <h2>최근에 뜬 ${esc(c)} 딜 <small>${arr.length}개</small></h2>${grid(arr)}
 ${join}`;
   write(`c/${c}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${c} 핫딜 모음`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) },
-    title: `${c} 핫딜·최저가 모음 - ${SITE}`, desc: `${c} 핫딜 ${arr.length}개. 쿠팡·지마켓 등에서 다른 곳보다 싸게 뜬 ${c} 가격 기록을 날짜별로 모았어요.`,
+    title: `${c} 최저가·핫딜 모음 - ${SITE}`, desc: `${c} 핫딜 ${arr.length}개. 쿠팡·지마켓 등에서 다른 곳보다 싸게 뜬 ${c} 가격 기록을 날짜별로 모았어요.`,
     canon: url('c', c), body, img: (arr.find(d => d.image) || {}).image, crumbs: [['홈', '/'], ['분류', '/c/'], [c, url('c', c)]] }));
   add(url('c', c), kst(arr[0].sentAt).ymd);
 }
