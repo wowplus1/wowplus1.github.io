@@ -195,6 +195,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .stack{display:grid;gap:10px}
 .note{font-size:12.5px;color:var(--dim);margin:6px 0 0}.note a{color:var(--mid)}
 .about p{color:var(--mid);margin:0;max-width:68ch}
+.about b,.vlist b{color:var(--brand-ink);font-weight:700}.tbl td.gain{color:var(--brand-ink);font-weight:700}
 .join{background:var(--ink);color:var(--paper);border-radius:22px;padding:22px 20px;margin:30px 0 0;display:grid;gap:6px}
 .join h3{margin:0;font-size:19px;letter-spacing:-.035em}.join p{margin:0 0 8px;color:color-mix(in srgb,var(--paper) 72%,transparent);font-size:14px}
 .join .assure{color:color-mix(in srgb,var(--paper) 70%,transparent)}
@@ -205,7 +206,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .lc-grid{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
 .lc-area{fill:currentColor;fill-opacity:.1}
 .lc-line{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
-.lc-ref{stroke:var(--ink);stroke-opacity:.45;stroke-width:1;vector-effect:non-scaling-stroke}
+.lc-ref{stroke:var(--brand);stroke-opacity:.8;stroke-width:1;vector-effect:non-scaling-stroke}
 .lc-y{position:absolute;left:-46px;width:40px;text-align:right;transform:translateY(-50%);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
 .lc-dot{position:absolute;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px var(--paper);opacity:.6}
 .lc-dot.low{width:10px;height:10px;margin:-5px 0 0 -5px;opacity:1}
@@ -213,7 +214,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .lc-lab{position:absolute;transform:translate(-50%,calc(-100% - 9px));font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;background:var(--paper);padding:0 3px;border-radius:4px;line-height:1.5}
 .lc-lab.below{transform:translate(-50%,9px)}.lc-lab.l{transform:translate(-4px,calc(-100% - 9px))}.lc-lab.l.below{transform:translate(-4px,9px)}
 .lc-lab.r{transform:translate(calc(-100% + 4px),calc(-100% - 9px))}.lc-lab.r.below{transform:translate(calc(-100% + 4px),9px)}
-.lc-lab.lowlab{color:var(--mid);font-weight:500}.lc-lab.reflab{color:var(--mid);font-weight:500;transform:translate(-100%,calc(-100% - 3px))}
+.lc-lab.me{color:var(--brand-ink);font-weight:700}.lc-lab.lowlab{color:var(--mid);font-weight:500}.lc-lab.reflab{color:var(--brand-ink);font-weight:700;transform:translate(-100%,calc(-100% - 3px))}
 .lc-x{display:flex;justify-content:space-between;margin:6px 0 0 46px;font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}
 .spark{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:14px 14px 8px;margin:0 0 6px}
 .spark svg{width:100%;height:120px;display:block}.spark .sparktip{margin:6px 0 2px}.spark .lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
@@ -332,7 +333,7 @@ ${ref > 0 ? `<line x1="0" x2="100" y1="${Y(ref).toFixed(2)}" y2="${Y(ref).toFixe
 ${ticks.map(t => `<span class="lc-y" style="top:${Y(t).toFixed(2)}%">${fmt(t)}</span>`).join('')}
 ${dots}<i class="lc-dot low" style="left:${X(pts[iLow].x).toFixed(2)}%;top:${Y(pts[iLow].v).toFixed(2)}%"></i>
 ${me != null && me !== iLow ? `<i class="lc-dot me" style="left:${X(pts[me].x).toFixed(2)}%;top:${Y(pts[me].v).toFixed(2)}%"></i>` : ''}
-${me != null && meLabel ? lab(me, meLabel, '') : ''}
+${me != null && meLabel ? lab(me, meLabel, 'me') : ''}
 ${lowLabel ? lab(iLow, lowLabel, 'lowlab') : ''}
 ${ref > 0 && refLabel ? `<span class="lc-lab reflab" style="left:97%;top:${Y(ref).toFixed(2)}%">${refLabel}</span>` : ''}
 </div><div class="lc-x">${xs.map(x => `<span>${x}</span>`).join('')}</div></div>`;
@@ -502,7 +503,7 @@ const compsTable = d => {
   if (!cs.length || !(d.price > 0)) return '';
   return `<h3 style="margin:16px 0 6px;font-size:15px">보낸 시점 다른 곳 가격</h3><div class="tbl"><table><thead><tr><th>어디</th><th class="r">가격</th><th class="r">이번 딜과 차이</th></tr></thead><tbody>
 <tr class="low"><td><b>이번 딜</b> · ${esc(d.mall)}</td><td class="r">${won(d.price)}</td><td class="r">–</td></tr>
-${cs.map(c => `<tr><td>${esc(c.name || '다른 곳')}</td><td class="r">${won(c.price)}</td><td class="r">${c.price > d.price ? '+' + won(c.price - d.price) : c.price < d.price ? '−' + won(d.price - c.price) : '같음'}</td></tr>`).join('')}
+${cs.map(c => `<tr><td>${esc(c.name || '다른 곳')}</td><td class="r">${won(c.price)}</td><td class="r${c.price > d.price ? ' gain' : ''}">${c.price > d.price ? '+' + won(c.price - d.price) : c.price < d.price ? '−' + won(d.price - c.price) : '같음'}</td></tr>`).join('')}
 </tbody></table></div>`;
 };
 const verifyBox = d => {
@@ -523,7 +524,7 @@ const verifyBox = d => {
   const r = d.review;
   if (r && r.count >= 100) li.push(`상품평 ${Number(r.count).toLocaleString('ko-KR')}개, 평균 ${r.score}점${r.low > 0 ? ` (낮은 별점 ${Number(r.low).toLocaleString('ko-KR')}개)` : ' (낮은 별점 없음)'}.`);
   const u = d.unit && typeof d.unit === 'object' && d.unit.value > 0 ? d.unit : null;
-  if (u) li.push(`${esc(u.label)} ${won(u.value)}.`);
+  if (u) li.push(`${esc(u.label)} <b>${won(u.value)}</b>.`);
   const items = li.filter(Boolean);
   const spec = Array.isArray(d.spec) ? d.spec.filter(Boolean) : [];
   const extra = compsTable(d) + trendChart(d);
@@ -569,7 +570,7 @@ const freqBox = d => {
 const about = (d, kws) => {
   const t = kst(d.sentAt);
   const parts = [`${esc(d.title)}${은는(d.title)} ${t.y}년 ${t.mo}월 ${t.d}일 ${t.h}:${t.mi}에 ${esc(d.mall)}에서 ${won(d.price)}에 올라온 딜입니다.`];
-  if (d.baseline && d.saving) parts.push(`같은 시점에 확인한 ${d.baselineNote ? esc(d.baselineNote) + ' ' : '다른 판매처 '}${won(d.baseline)}보다 ${d.saving}% 낮은 가격이었습니다.`);
+  if (d.baseline && d.saving) parts.push(`같은 시점에 확인한 ${d.baselineNote ? esc(d.baselineNote) + ' ' : '다른 판매처 '}${won(d.baseline)}보다 <b>${d.saving}% 낮은 가격</b>이었습니다.`);
   parts.push(d.web ? '카톡방 기준(다른 곳보다 20% 이상)에는 못 미쳐 이 사이트에만 올렸습니다.' : '핫딜베스트 카톡방에 이 가격으로 보낸 딜입니다.');
   // 같은 상품끼리만 비교한다 — 품목 단어(브랜드)만 같으면 다른 모델이 섞인다(시티즌 에코드라이브 ↔ 큐앤큐, 11/3)
   const same = sameItems(d);
