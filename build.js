@@ -772,7 +772,7 @@ write('index.html', page({ ld: [
 <h1>생필품 핫딜, <span class="hl">다른 곳 가격과 비교해서</span> 카톡으로 보내드려요</h1>
 <p class="lead">쿠팡·지마켓·롯데온·11번가에서 싸게 뜬 식품·생필품을 다른 곳 가격이랑 견줘 보고, 괜찮을 때만 카톡방에 보내요.</p>
 ${ctaBtn}${assure}
-<div class="stats"><div class="stat"><b>${deals.length.toLocaleString('ko-KR')}</b><span>지금까지 고른 딜</span></div><div class="stat"><b>${AVG_SAVE}%</b><span>다른 곳보다 평균</span></div><div class="stat"><b>${Math.round(deals.length / DAYS)}건</b><span>하루 평균</span></div></div>
+<div class="stats"><div class="stat"><b>${deals.length.toLocaleString('ko-KR')}</b><span>지금까지 고른 딜</span></div><div class="stat"><b>${AVG_SAVE}%</b><span>다른 곳보다 평균</span></div><div class="stat"><b>${Math.round(deals.length / DAYS)}개</b><span>하루 평균</span></div></div>
 </div><div class="pile" aria-hidden="true">${pile.map((d, i) => `<img src="${esc(d.image)}" alt="" referrerpolicy="no-referrer" style="left:${POS[i][0]}px;top:${POS[i][1]}px;transform:rotate(${POS[i][2]}deg);z-index:${i % 3 + 1}">`).join('')}</div></section>
 ${sbox()}
 <h2>방금 보낸 딜 <small id="livetag" class="livetag">실시간</small> <small><a href="/deals/">전체 ${deals.length}개 →</a></small></h2><ul class="grid" id="recent">${deals.slice(0, 20).map(card).join('')}</ul>
