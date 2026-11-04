@@ -264,8 +264,8 @@ ${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ''}
 <main class="wrap">
 ${crumbs ? `<nav class="crumb" aria-label="현재 위치">${crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="${c[1]}">${esc(c[0])}</a>` : `<span>${esc(c[0])}</span>`).join(' › ')}</nav>` : ''}
 ${body}
-<footer><span>가격은 핫딜베스트가 확인한 시점 기준이며 판매처 사정에 따라 언제든 바뀝니다. 「다른 곳」 가격은 그 시점에 함께 확인한 판매글 기준입니다.</span>
-<span>일부 링크는 제휴 링크이며, 쇼핑몰마다 고지 문구를 함께 적습니다.</span>
+<footer><span>가격은 핫딜베스트가 확인한 때 기준이라, 판매처 사정에 따라 언제든 바뀔 수 있어요. 「다른 곳」 가격은 그때 함께 확인한 판매글 기준이에요.</span>
+<span>일부 링크는 제휴 링크라서, 쇼핑몰마다 고지 문구를 함께 적어요.</span>
 <span>운영 주식회사 와우플러스 · <a href="https://hotdeal.best/?utm_source=${SRC}">hotdeal.best</a></span></footer>
 </main>
 <div class="bar">${ctaBtn}</div>
@@ -596,7 +596,7 @@ for (const d of deals) {
   const sameMall = (byMall[d.mall] || []).filter(x => x.uid !== d.uid && !related.includes(x)).slice(0, 6);
   const ug = unitGroup(d);
   const desc = `${dateKo(d.sentAt)} ${d.mall} ${won(d.price)}` + (ug ? `(${ug.sc.label} ${unitWon(d, ug.sc)})` : '') + '.'
-    + (d.baseline ? ` 다른 곳 ${won(d.baseline)}보다 ${d.saving}% 낮은 가격으로 핫딜베스트가 고른 딜입니다.` : ' 핫딜베스트가 고른 딜입니다.');
+    + (d.baseline ? ` 다른 곳 ${won(d.baseline)}보다 ${d.saving}% 싸게 떠서 핫딜베스트가 고른 딜이에요.` : ' 핫딜베스트가 고른 딜이에요.');
   // 단가로 줄 세우기 — 10줄까지, 이번 딜이 그 밖이면 마지막 줄에 붙인다
   let unitSec = '';
   if (ug) {
@@ -627,10 +627,10 @@ ${d.earlier && d.earlier.length ? `<h2>이 상품, 전에는 얼마였을까?</h
 ${[Object.assign({ now: 1 }, d), ...d.earlier].map((e, i, arr) => `<tr${+e.price > 0 && +e.price === Math.min(...arr.map(x => +x.price || Infinity)) ? ' class="low"' : ''}><td>${dateTime(e.sentAt)}${e.now ? ' (이번)' : e.web ? ' · 사이트' : ''}</td><td class="r">${won(e.price)}</td><td class="r">${won(e.baseline)}</td></tr>`).join('')}
 </tbody></table></div><p class="note">같은 상품도 뜰 때마다 가격이 달라요.</p>` : ''}
 ${join}
-${catOf(d).filter(c => CATL.includes(c)).length ? `<h2>분류</h2><ul class="chips">${catOf(d).filter(c => CATL.includes(c)).map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}건</em></a></li>`).join('')}</ul>` : ''}
-${kws.length ? `<h2>같은 품목 가격 기록</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}건</em></a></li>`).join('')}</ul>` : ''}
-${related.length ? `<h2>비슷한 딜</h2>${grid(related)}` : ''}
-${sameMall.length ? `<h2>${esc(d.mall)} 최근 딜</h2>${grid(sameMall)}` : ''}`;
+${catOf(d).filter(c => CATL.includes(c)).length ? `<h2>어느 분류예요?</h2><ul class="chips">${catOf(d).filter(c => CATL.includes(c)).map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}개</em></a></li>`).join('')}</ul>` : ''}
+${kws.length ? `<h2>같은 품목 가격 기록 보기</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}개</em></a></li>`).join('')}</ul>` : ''}
+${related.length ? `<h2>이런 딜은 어때요?</h2>${grid(related)}` : ''}
+${sameMall.length ? `<h2>${esc(d.mall)}에서 최근에 뜬 딜</h2>${grid(sameMall)}` : ''}`;
   // 그래프가 둘 다 있을 때만 ①② 번호를 단다 (하나뿐인데 ① 이 붙어 있었다)
   const bodyN = body.includes('② 핫딜베스트가 고른') ? body.replace('>이 상품의 1년 시세</h3>', '>① 이 상품의 1년 시세</h3>') : body;
   write(decodeURIComponent(dealUrl(d)).slice(1) + 'index.html', page({ title: `${d.title} ${won(d.price)} 핫딜 - ${SITE}`, desc, canon: dealUrl(d), body: bodyN, img: d.image,
@@ -677,7 +677,7 @@ ${join}
     canon: url('k', w), body, img: min.image, crumbs: [['홈', '/'], ['품목별', '/k/'], [w, url('k', w)]] }));
   add(url('k', w), kst(arr[0].sentAt).ymd);
 }
-write('k/index.html', page({ title: `품목별 핫딜 기록 - ${SITE}`, desc: '브랜드·품목별로 핫딜베스트가 고른 핫딜과 가격 기록을 모았습니다.', canon: '/k/',
+write('k/index.html', page({ title: `품목별 핫딜 기록 - ${SITE}`, desc: '브랜드·품목별로 핫딜베스트가 고른 핫딜과 가격 기록을 모았어요.', canon: '/k/',
   crumbs: [['홈', '/'], ['품목별', '/k/']],
   body: `<h1>품목별 핫딜 기록</h1><p class="lead">3번 이상 뜬 브랜드·품목이에요. 누르면 그동안 얼마에 떴는지 볼 수 있어요.</p><ul class="chips">${KW.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>${join}` }));
 add('/k/', kst(deals[0].sentAt).ymd);
@@ -693,18 +693,19 @@ for (const c of CATL) {
   const saves = arr.filter(d => d.saving > 0);
   const avg = saves.length ? Math.round(saves.reduce((t, d) => t + d.saving, 0) / saves.length) : 0;
   const body = `<h1>${esc(c)} 핫딜·최저가 모음</h1>
-<p class="lead">핫딜베스트가 다른 판매처 가격과 비교해 고른 <b>${esc(c)}</b> 딜 ${arr.length}건입니다.${d30 ? ` 최근 30일에 ${d30}건 나왔고,` : ''}${avg ? ` 같은 시점 다른 판매처보다 평균 <span class="hl">${avg}%</span> 낮았어요.` : ''} 가격은 보낸 시각 기준이라 지금은 다를 수 있습니다.</p>
-${kws.length ? `<h2>${esc(c)} 중 자주 나온 품목</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${kc[w]}</em></a></li>`).join('')}</ul>` : ''}
-<h2>${esc(c)} 딜 <small>최근 것부터 ${arr.length}건</small></h2>${grid(arr)}
+<p class="lead">핫딜베스트가 다른 곳 가격과 비교해서 고른 <b>${esc(c)}</b> 딜, 지금까지 <b>${arr.length}개</b>예요.${d30 ? ` 최근 한 달 사이에만 ${d30}개가 떴어요.` : ''}</p>
+<p class="lead">${avg ? `같은 때 다른 곳보다 평균 <span class="hl">${avg}%</span> 쌌어요. ` : ''}가격은 뜬 때 기준이라 지금은 다를 수 있어요.</p>
+${kws.length ? `<h2>${esc(c)} 중에 자주 뜬 건?</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${kc[w]}</em></a></li>`).join('')}</ul>` : ''}
+<h2>최근에 뜬 ${esc(c)} 딜 <small>${arr.length}개</small></h2>${grid(arr)}
 ${join}`;
   write(`c/${c}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${c} 핫딜 모음`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) },
-    title: `${c} 핫딜·최저가 모음 - ${SITE}`, desc: `${c} 핫딜 ${arr.length}건. 쿠팡·지마켓 등에서 다른 판매처보다 싸게 뜬 ${c} 가격 기록을 날짜별로 모았습니다.`,
+    title: `${c} 핫딜·최저가 모음 - ${SITE}`, desc: `${c} 핫딜 ${arr.length}개. 쿠팡·지마켓 등에서 다른 곳보다 싸게 뜬 ${c} 가격 기록을 날짜별로 모았어요.`,
     canon: url('c', c), body, img: (arr.find(d => d.image) || {}).image, crumbs: [['홈', '/'], ['분류', '/c/'], [c, url('c', c)]] }));
   add(url('c', c), kst(arr[0].sentAt).ymd);
 }
-write('c/index.html', page({ title: `분류별 핫딜 모음 - ${SITE}`, desc: '라면·생수·커피·세제·화장지 등 분류별로 핫딜베스트가 고른 핫딜과 가격 기록을 모았습니다.', canon: '/c/',
+write('c/index.html', page({ title: `분류별 핫딜 모음 - ${SITE}`, desc: '라면·생수·커피·세제·화장지 등 분류별로 핫딜베스트가 고른 핫딜과 가격 기록을 모았어요.', canon: '/c/',
   crumbs: [['홈', '/'], ['분류', '/c/']],
-  body: `<h1>분류별 핫딜 모음</h1><p class="lead">식품·생필품을 분류별로 모았어요. 누르면 그 분류에서 고른 딜을 최근 것부터 볼 수 있습니다.</p>
+  body: `<h1>분류별 핫딜 모음</h1><p class="lead">식품·생필품을 분류별로 모았어요. 누르면 그 분류에서 고른 딜을 최근 것부터 볼 수 있어요.</p>
 <ul class="chips">${CATL.map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}</em></a></li>`).join('')}</ul>${sbox()}${join}` }));
 add('/c/', kst(deals[0].sentAt).ymd);
 
@@ -712,9 +713,9 @@ add('/c/', kst(deals[0].sentAt).ymd);
 write('search.json', JSON.stringify(deals.map(d => ({ u: decodeURIComponent(dealUrl(d)), t: d.title, p: d.price, m: d.mall, s: d.sentAt, i: d.image || '', v: d.saving || 0, b: d.baseline || 0, w: d.web ? 1 : 0 }))));
 write('search/index.html', page({ title: `핫딜 기록 검색 - ${SITE}`, desc: '핫딜베스트가 고른 지난 핫딜을 상품 이름으로 찾아보세요.', canon: '/search/', noindex: true,
   crumbs: [['홈', '/'], ['검색', '/search/']],
-  body: `<h1>지난 핫딜 찾기</h1><p class="lead">상품 이름이나 브랜드로 찾아보세요. 핫딜베스트가 지금까지 고른 딜 ${deals.length}건에서 찾습니다.</p>${sbox()}
+  body: `<h1>지난 핫딜 찾기</h1><p class="lead">상품 이름이나 브랜드로 찾아보세요. 핫딜베스트가 지금까지 고른 딜 ${deals.length}개 안에서 찾아 드려요.</p>${sbox()}
 <p class="note" id="sinfo"></p><ul class="grid" id="sres"></ul>
-<h2>자주 찾는 품목</h2><ul class="chips">${KW.slice(0, 24).map(w => `<li><a href="/search/?q=${encodeURIComponent(w)}">${esc(w)}</a></li>`).join('')}</ul>
+<h2>이런 걸 많이 찾아요</h2><ul class="chips">${KW.slice(0, 24).map(w => `<li><a href="/search/?q=${encodeURIComponent(w)}">${esc(w)}</a></li>`).join('')}</ul>
 ${join}
 <script>
 (function () {
@@ -733,7 +734,7 @@ ${join}
     if (window.gtag) gtag('event', 'search', { search_term: q, results: hit.length });
     if (!hit.length) { info.innerHTML = '「' + esc(q) + '」 딜은 아직 없어요. 새로 싸게 뜨면 카톡방으로 먼저 보내드려요.'; return; }
     var low = hit.reduce(function (a, b) { return b.p > 0 && b.p < a.p ? b : a; }, hit[0]);
-    info.innerHTML = '「' + esc(q) + '」 딜 ' + hit.length + '건 · 가장 낮았던 가격 <b>' + won(low.p) + '</b> (' + when(low.s) + ', ' + esc(low.m) + ')';
+    info.innerHTML = '「' + esc(q) + '」 딜 ' + hit.length + '개 · 제일 쌌던 가격 <b>' + won(low.p) + '</b> (' + when(low.s) + ', ' + esc(low.m) + ')';
     box.innerHTML = hit.slice(0, 60).map(function (d) {
       return '<li><a class="card" href="' + esc(d.u) + '"><span class="ph">' + (d.i ? '<img src="' + esc(d.i) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '</span><span class="body">'
         + '<span class="m"><span class="mall">' + esc(d.m) + '</span>' + when(d.s) + (d.w ? ' 확인' : ' 보냄') + '</span><span class="t">' + esc(d.t) + '</span>'
@@ -745,18 +746,18 @@ ${join}
 
 // 쇼핑몰별
 for (const m of MALLS) {
-  write(`mall/${m}/index.html`, page({ title: `${m} 핫딜 모음 - ${SITE}`, desc: `핫딜베스트가 고른 ${m} 핫딜 ${byMall[m].length}건.`, canon: url('mall', m),
+  write(`mall/${m}/index.html`, page({ title: `${m} 핫딜 모음 - ${SITE}`, desc: `핫딜베스트가 고른 ${m} 핫딜 ${byMall[m].length}개를 모았어요.`, canon: url('mall', m),
     crumbs: [['홈', '/'], [m, url('mall', m)]],
-    body: `<h1>${esc(m)} 핫딜 모음</h1><p class="lead">핫딜베스트가 고른 ${esc(m)} 딜 ${byMall[m].length}건, 최근 것부터예요.</p>${grid(byMall[m])}${join}` }));
+    body: `<h1>${esc(m)} 핫딜 모음</h1><p class="lead">핫딜베스트가 고른 ${esc(m)} 딜, 지금까지 <b>${byMall[m].length}개</b>예요. 최근 것부터 보여 드려요.</p>${grid(byMall[m])}${join}` }));
   add(url('mall', m), kst(byMall[m][0].sentAt).ymd);
 }
 
 // 전체 딜 (월별)
 const months = {};
 for (const d of deals) { const t = kst(d.sentAt); const k = `${t.y}-${String(t.mo).padStart(2, '0')}`; (months[k] = months[k] || []).push(d); }
-write('deals/index.html', page({ title: `전체 핫딜 기록 - ${SITE}`, desc: `핫딜베스트가 고른 핫딜 ${deals.length}건 전체.`, canon: '/deals/', crumbs: [['홈', '/'], ['전체 딜', '/deals/']],
-  body: `<h1>전체 핫딜 기록</h1><p class="lead">지금까지 고른 딜 ${deals.length}건입니다. 카톡방에는 아침 7시 ~ 밤 10시에 보내고, 이 사이트에는 24시간 올립니다.</p>` +
-    Object.keys(months).sort().reverse().map(k => `<h2>${+k.slice(0, 4)}년 ${+k.slice(5)}월 <small>${months[k].length}건</small></h2>${grid(months[k])}`).join('') + join }));
+write('deals/index.html', page({ title: `전체 핫딜 기록 - ${SITE}`, desc: `핫딜베스트가 지금까지 고른 핫딜 ${deals.length}개를 달별로 모았어요.`, canon: '/deals/', crumbs: [['홈', '/'], ['전체 딜', '/deals/']],
+  body: `<h1>전체 핫딜 기록</h1><p class="lead">지금까지 고른 딜, 모두 <b>${deals.length}개</b>예요. 카톡방에는 아침 7시부터 밤 10시까지 보내고, 이 사이트에는 24시간 올려요.</p>` +
+    Object.keys(months).sort().reverse().map(k => `<h2>${+k.slice(0, 4)}년 ${+k.slice(5)}월 <small>${months[k].length}개</small></h2>${grid(months[k])}`).join('') + join }));
 add('/deals/', kst(deals[0].sentAt).ymd);
 
 // 홈
@@ -765,20 +766,20 @@ const POS = [[8, 30, -9], [118, 6, 6], [228, 34, -4], [40, 104, 7], [158, 92, -7
 write('index.html', page({ ld: [
   { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE, alternateName: '핫딜베스트', url: BASE + '/', inLanguage: 'ko',
     potentialAction: { '@type': 'SearchAction', target: BASE + '/search/?q={search_term_string}', 'query-input': 'required name=search_term_string' } },
-  { '@context': 'https://schema.org', '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/', logo: BASE + '/logo.png', sameAs: ['https://hotdeal.best/'] }], title: `생필품 핫딜, 다른 곳 가격과 비교해 카톡으로 - ${SITE}`, desc: '싸게 뜬 생필품·식품 핫딜을 다른 판매처 가격과 비교해 카카오톡 오픈채팅으로 보내드립니다. 지금까지 보낸 딜과 품목별 가격 기록.', canon: '/',
+  { '@context': 'https://schema.org', '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/', logo: BASE + '/logo.png', sameAs: ['https://hotdeal.best/'] }], title: `생필품 핫딜, 다른 곳 가격과 비교해 카톡으로 - ${SITE}`, desc: '싸게 뜬 생필품·식품 핫딜을 다른 곳 가격과 비교해서 카카오톡 오픈채팅으로 보내 드려요. 지금까지 보낸 딜과 품목별 가격 기록도 볼 수 있어요.', canon: '/',
   body: `<section class="hero"><div>
 <span class="badge"><i></i>24시간 업데이트 · 카톡방은 아침 7시 ~ 밤 10시</span>
 <h1>생필품 핫딜, <span class="hl">다른 곳 가격과 비교해서</span> 카톡으로 보내드려요</h1>
-<p class="lead">쿠팡·지마켓·롯데온·11번가에서 싸게 뜬 식품·생필품을 다른 판매처 가격과 견주어 보고, 괜찮을 때만 카톡방에 보냅니다.</p>
+<p class="lead">쿠팡·지마켓·롯데온·11번가에서 싸게 뜬 식품·생필품을 다른 곳 가격이랑 견줘 보고, 괜찮을 때만 카톡방에 보내요.</p>
 ${ctaBtn}${assure}
 <div class="stats"><div class="stat"><b>${deals.length.toLocaleString('ko-KR')}</b><span>지금까지 고른 딜</span></div><div class="stat"><b>${AVG_SAVE}%</b><span>다른 곳보다 평균</span></div><div class="stat"><b>${Math.round(deals.length / DAYS)}건</b><span>하루 평균</span></div></div>
 </div><div class="pile" aria-hidden="true">${pile.map((d, i) => `<img src="${esc(d.image)}" alt="" referrerpolicy="no-referrer" style="left:${POS[i][0]}px;top:${POS[i][1]}px;transform:rotate(${POS[i][2]}deg);z-index:${i % 3 + 1}">`).join('')}</div></section>
 ${sbox()}
-<h2>최근 보낸 딜 <small id="livetag" class="livetag">실시간</small> <small><a href="/deals/">전체 ${deals.length}건 →</a></small></h2><ul class="grid" id="recent">${deals.slice(0, 20).map(card).join('')}</ul>
-<section class="why"><h2>핫딜 가격은 오래 가지 않아요</h2>${flow}<p class="note">위 기록은 보낸 시각의 가격이에요. 지금 들어가면 이미 끝났을 수 있어서, 싸게 뜬 순간 카톡으로 보내드립니다.</p></section>
-<h2>분류별 핫딜 <small><a href="/c/">전체 보기 →</a></small></h2><ul class="chips">${CATL.map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}</em></a></li>`).join('')}</ul>
-<h2>품목별 가격 기록 <small><a href="/k/">전체 보기 →</a></small></h2><ul class="chips">${KW.slice(0, 36).map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>
-<h2>쇼핑몰별</h2><ul class="chips">${MALLS.map(m => `<li><a href="${url('mall', m)}">${esc(m)} <em>${byMall[m].length}</em></a></li>`).join('')}</ul>
+<h2>방금 보낸 딜 <small id="livetag" class="livetag">실시간</small> <small><a href="/deals/">전체 ${deals.length}개 →</a></small></h2><ul class="grid" id="recent">${deals.slice(0, 20).map(card).join('')}</ul>
+<section class="why"><h2>핫딜 가격은 오래 가지 않아요</h2>${flow}<p class="note">위 기록은 보낸 때의 가격이에요. 지금 들어가면 이미 끝났을 수 있어서, 싸게 뜬 순간 카톡으로 보내 드려요.</p></section>
+<h2>분류별로 보기 <small><a href="/c/">전체 보기 →</a></small></h2><ul class="chips">${CATL.map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}</em></a></li>`).join('')}</ul>
+<h2>품목별 가격 기록 보기 <small><a href="/k/">전체 보기 →</a></small></h2><ul class="chips">${KW.slice(0, 36).map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>
+<h2>쇼핑몰별로 보기</h2><ul class="chips">${MALLS.map(m => `<li><a href="${url('mall', m)}">${esc(m)} <em>${byMall[m].length}</em></a></li>`).join('')}</ul>
 ${joinPlain}${liveScript(deals.map(d => String(d.uid)))}` }));
 add('/', kst(deals[0].sentAt).ymd);
 
@@ -786,12 +787,12 @@ add('/', kst(deals[0].sentAt).ymd);
 // 파이어베이스 feed/items/<uid> 를 읽어 딜 상세와 같은 모양으로 그린다. 정적 페이지가 생겼으면 그리로 넘긴다.
 // 검색엔진에는 안 보인다(noindex) — 같은 딜의 정적 페이지가 곧 생기기 때문이다.
 write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 핫딜', canon: '/new/', noindex: true,
-  body: `<div id="nd"><p class="lead">딜을 불러오는 중입니다…</p></div>${join}<script>
+  body: `<div id="nd"><p class="lead">딜을 불러오고 있어요…</p></div>${join}<script>
 (function () {
   var DISC = ${JSON.stringify(DISCLOSURE)}, DEF = ${JSON.stringify(disclosureFor(''))};
   var id = new URLSearchParams(location.search).get('id') || '';
   var box = document.getElementById('nd');
-  if (!/^\\d+$/.test(id)) { box.innerHTML = '<p class="lead">딜 번호가 없습니다. <a href="/">홈으로</a></p>'; return; }
+  if (!/^\\d+$/.test(id)) { box.innerHTML = '<p class="lead">딜 번호가 없어요. <a href="/">홈으로</a></p>'; return; }
   fetch('/deal/' + id + '/', { method: 'HEAD' }).then(function (r) { if (r.ok) location.replace('/deal/' + id + '/'); }).catch(function () {});
   function won(n) { return Number(n) > 0 ? Number(n).toLocaleString('ko-KR') + '원' : ''; }
   function ko(iso) { var m = String(iso).match(/(\\d{4})-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/); return m ? m[1] + '년 ' + (+m[2]) + '월 ' + (+m[3]) + '일 ' + m[4] + ':' + m[5] : ''; }
@@ -820,7 +821,7 @@ write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 
       info.appendChild(cmp);
     }
     var w = el('p', 'warn'); w.appendChild(el('b', '', '⚠ ' + short(d.sentAt) + ' 기준 가격이에요'));
-    w.appendChild(el('span', '', '가격이 달라졌다면 이미 끝난 딜입니다. 구매 전 판매처 가격을 꼭 확인하세요.')); info.appendChild(w);
+    w.appendChild(el('span', '', '가격이 바뀌었다면 이미 끝난 딜이에요. 사기 전에 판매처 가격을 꼭 확인해 주세요.')); info.appendChild(w);
     if (d.link && !/hotdeal\\.best/.test(d.link)) {
       var st = el('div', 'stack'), a = el('a', 'btn', (d.mall || '판매처') + '에서 지금 가격 보기 ↗');
       a.href = d.link; a.target = '_blank'; a.rel = 'nofollow sponsored noopener'; st.appendChild(a);
@@ -839,7 +840,7 @@ write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 
 })();
 </script>` }));
 
-write('404.html', page({ title: `페이지가 없습니다 - ${SITE}`, desc: '', canon: '/404.html', body: `<h1>페이지를 찾을 수 없습니다</h1><p class="lead">주소가 바뀌었거나 없는 페이지예요.</p><p><a class="btn" href="/">홈으로</a></p>${join}` }));
+write('404.html', page({ title: `페이지가 없어요 - ${SITE}`, desc: '', canon: '/404.html', body: `<h1>페이지를 찾을 수 없어요</h1><p class="lead">주소가 바뀌었거나 없는 페이지예요.</p><p><a class="btn" href="/">홈으로</a></p>${join}` }));
 // 다음 웹마스터도구 확인 줄은 robots.txt 안에 넣어야 한다. daum-robots.txt 에 그 줄을 두면 덧붙인다 (지우면 확인이 풀림)
 const DAUM = path.join(__dirname, 'daum-robots.txt');
 write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${BASE}/sitemap.xml\n` + (fs.existsSync(DAUM) ? '\n' + fs.readFileSync(DAUM, 'utf8').trim() + '\n' : ''));
