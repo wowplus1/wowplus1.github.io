@@ -302,10 +302,27 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria 
   const iLow = pts.reduce((b, p, i) => (p.v < pts[b].v ? i : b), 0);
   // 세로축 값은 짧게 — 「30만」·「2.5만」·「1.25만」·「7,500」. 반올림하면 눈금이 틀린 값이 된다(1.25만 → 1.3만, 1.75만 → 1.8만 으로 나갔다)
   const fmt = n => n >= 1e5 ? +(n / 1e4).toFixed(1) + '만' : n >= 1e4 ? +(n / 1e4).toFixed(2) + '만' : Math.round(n).toLocaleString('ko-KR');
-  const lab = (i, text, cls) => { const x = X(pts[i].x), y = Y(pts[i].v); const side = x < 14 ? ' l' : x > 86 ? ' r' : '';
-    return `<span class="lc-lab ${cls}${side}${y < 26 && !/below/.test(cls) ? ' below' : ''}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">${text}</span>`; };
+  // 숫자 표시 자리 고르기 (11/4) — 점 위·아래 × 가운데·왼쪽·오른쪽 여섯 자리 중, 다른 점·선·먼저 놓인 표시를 가장 적게 가리는 곳.
+  // 글자 폭은 모르니 좁은 화면(그래프 폭 300px) 기준으로 넉넉히 잡는다. 단위는 그래프 안 % (가로 300px · 세로 160px)
+  const segs = []; for (let i = 1; i < pts.length; i++) for (let k = 1; k < 12; k++) { const t = k / 12;
+    segs.push([X(pts[i - 1].x) + (X(pts[i].x) - X(pts[i - 1].x)) * t, Y(pts[i - 1].v) + (Y(pts[i].v) - Y(pts[i - 1].v)) * t]); }
+  const placed = ref > 0 && refLabel ? [[97 - (refLabel.length * 6.6 + 8) / 3, Y(ref) - 3 / 1.6 - 18 / 1.6, 97, Y(ref) - 3 / 1.6]] : [];
+  const lab = (i, text, extra) => {
+    const x = X(pts[i].x), y = Y(pts[i].v), w = (text.length * 6.6 + 8) / 300 * 100, h = 18 / 160 * 100, gap = 9 / 160 * 100, nudge = 4 / 300 * 100;
+    const cands = [['', 0], ['l', 0], ['r', 0], ['below', 1], ['l below', 1], ['r below', 1]].map(([cls, below], order) => {
+      const x0 = /\bl\b/.test(cls) ? x - nudge : /\br\b/.test(cls) ? x + nudge - w : x - w / 2, y0 = below ? y + gap : y - gap - h;
+      const box = [x0, y0, x0 + w, y0 + h], inBox = (px, py) => px > box[0] - 1 && px < box[2] + 1 && py > box[1] - 1 && py < box[3] + 1;
+      let cost = order * 0.01;                                                  // 비기면 위 가운데부터
+      if (box[0] < -8 || box[2] > 108 || box[1] < -4 || box[3] > 104) cost += 50;  // 그래프 밖으로 많이 나감
+      pts.forEach((p, j) => { if (j !== i && inBox(X(p.x), Y(p.v))) cost += 6; });
+      segs.forEach(([px, py]) => { if (inBox(px, py)) cost += 1; });
+      placed.forEach(q => { if (box[0] < q[2] && box[2] > q[0] && box[1] < q[3] && box[3] > q[1]) cost += 40; });
+      return { cls, box, cost };
+    }).sort((p, q) => p.cost - q.cost);
+    placed.push(cands[0].box);
+    return `<span class="lc-lab ${extra}${cands[0].cls ? ' ' + cands[0].cls : ''}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">${text}</span>`;
+  };
   const dots = pts.length <= 16 ? pts.map((p, i) => i === iLow || i === me ? '' : `<i class="lc-dot" style="left:${X(p.x).toFixed(2)}%;top:${Y(p.v).toFixed(2)}%"></i>`).join('') : '';
-  const close = me != null && me !== iLow && Math.abs(X(pts[me].x) - X(pts[iLow].x)) < 16;
   return `<div class="lc" style="--c:${color}" role="img" aria-label="${esc(aria)}"><div class="lc-plot">
 <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
 ${ticks.map(t => `<line x1="0" x2="100" y1="${Y(t).toFixed(2)}" y2="${Y(t).toFixed(2)}" class="lc-grid"/>`).join('')}
@@ -315,8 +332,8 @@ ${ref > 0 ? `<line x1="0" x2="100" y1="${Y(ref).toFixed(2)}" y2="${Y(ref).toFixe
 ${ticks.map(t => `<span class="lc-y" style="top:${Y(t).toFixed(2)}%">${fmt(t)}</span>`).join('')}
 ${dots}<i class="lc-dot low" style="left:${X(pts[iLow].x).toFixed(2)}%;top:${Y(pts[iLow].v).toFixed(2)}%"></i>
 ${me != null && me !== iLow ? `<i class="lc-dot me" style="left:${X(pts[me].x).toFixed(2)}%;top:${Y(pts[me].v).toFixed(2)}%"></i>` : ''}
-${lowLabel ? lab(iLow, lowLabel, close && Y(pts[iLow].v) > Y(pts[me].v) ? 'lowlab below' : 'lowlab') : ''}
-${me != null && meLabel ? lab(me, meLabel, close && Y(pts[me].v) >= Y(pts[iLow].v) ? 'below' : '') : ''}
+${me != null && meLabel ? lab(me, meLabel, '') : ''}
+${lowLabel ? lab(iLow, lowLabel, 'lowlab') : ''}
 ${ref > 0 && refLabel ? `<span class="lc-lab reflab" style="left:97%;top:${Y(ref).toFixed(2)}%">${refLabel}</span>` : ''}
 </div><div class="lc-x">${xs.map(x => `<span>${x}</span>`).join('')}</div></div>`;
 };
