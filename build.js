@@ -286,7 +286,7 @@ const buyLink = d => {
 // 선 그래프 공용 (11/4 「단조롭다」 → 다시 그림). 상세 ①②·품목 페이지가 같이 쓴다.
 // 선·면·눈금선은 SVG(가로세로 비율 무시), 점·글자는 HTML 로 얹는다 — 폰에서도 점이 동그랗고 글자 크기가 그대로다.
 // 꾸밈은 빼고: 선 2px · 면은 같은 색 10% · 눈금선 1px 실선 · 숫자는 가장 낮은 점과 이번 딜에만 (모든 점에 숫자를 달지 않는다)
-const niceStep = span => { const raw = span / 2, p = Math.pow(10, Math.floor(Math.log10(raw || 1))); return [1, 2, 2.5, 5, 10].map(m => m * p).find(x => x >= raw) || raw; };
+const niceStep = span => { const raw = span / 3, p = Math.pow(10, Math.floor(Math.log10(raw || 1))); return [1, 2, 2.5, 5, 10].map(m => m * p).find(x => x >= raw) || raw; };
 const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria }) => {
   // pts: [{x: 0~1, v}] · me: pts 안의 이번 딜 번호 · ref: 가로 기준선 값(① 의 이번 딜 가격)
   const vs = pts.map(p => p.v).concat(ref > 0 ? [ref] : []);
@@ -297,7 +297,8 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria 
   const X = x => 3 + 94 * x, Y = v => 8 + 82 * (1 - (v - lo) / (hi - lo));   // 위 8% · 아래 10% 여백
   const line = pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(p.v).toFixed(2)).join(' ');
   const iLow = pts.reduce((b, p, i) => (p.v < pts[b].v ? i : b), 0);
-  const fmt = n => Math.round(n).toLocaleString('ko-KR');
+  // 세로축 값은 짧게 — 10만 넘으면 「30만」, 1만 넘으면 「2.5만」, 그 아래는 「7,500」
+  const fmt = n => n >= 1e5 ? Math.round(n / 1e4) + '만' : n >= 1e4 ? +(n / 1e4).toFixed(1) + '만' : Math.round(n).toLocaleString('ko-KR');
   const lab = (i, text, cls) => { const x = X(pts[i].x), y = Y(pts[i].v); const side = x < 14 ? ' l' : x > 86 ? ' r' : '';
     return `<span class="lc-lab ${cls}${side}${y < 26 && !/below/.test(cls) ? ' below' : ''}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">${text}</span>`; };
   const dots = pts.length <= 16 ? pts.map((p, i) => i === iLow || i === me ? '' : `<i class="lc-dot" style="left:${X(p.x).toFixed(2)}%;top:${Y(p.v).toFixed(2)}%"></i>`).join('') : '';
