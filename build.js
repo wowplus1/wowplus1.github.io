@@ -541,7 +541,7 @@ const storyBox = d => {
       : `같은 규격 상품을 파는 곳이 한 곳뿐이었는데, 거기 가격이 ${won(c.market)}${ship}이었어요.`) + cheap);
   } else if (d.baseline && d.saving) {
     // 비교 출처마다 자연스러운 문장으로 (「47곳 중 최저 · 무료배송가」처럼 이름을 그대로 붙이면 어색했다)
-    const nt = String(d.baselineNote || ''), m1 = nt.match(/^(d+)곳 중 최저( · 무료배송)?/), m2 = nt.match(/^판매글 (d+)곳 최저가/), m3 = nt.match(/^판매글 (d+)곳 중간값/);
+    const nt = String(d.baselineNote || ''), m1 = nt.match(/^([0-9]+)곳 중 최저( · 무료배송)?/), m2 = nt.match(/^판매글 ([0-9]+)곳 최저가/), m3 = nt.match(/^판매글 ([0-9]+)곳 중간값/);
     P.push((m1 ? `같은 때 같은 상품을 ${m1[1]}곳에서 팔았는데, 그중 제일 싼 곳도 ${won(d.baseline)}${m1[2] ? '(무료배송)' : ''}이었어요.`
       : m2 ? `같은 때 다른 판매처 ${m2[1]}곳 중 제일 싼 곳이 ${won(d.baseline)}이었어요.`
       : m3 ? `같은 때 다른 판매처 ${m3[1]}곳의 중간 가격이 ${won(d.baseline)}이었어요.`
