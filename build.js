@@ -504,10 +504,11 @@ const trendChart = d => {
   const head = p < low.p ? `<b>1년 동안 이렇게 싼 적이 없어요.</b> 평소엔 ${won(usual)} 안팎이었고, 제일 쌌던 ${mLabel(low.m)}(${won(low.p)})보다도 <b>${won(low.p - p)} 더 싸요</b>.`
     : p < usual ? `평소 시세(${won(usual)} 안팎)보다 <b>${won(usual - p)} 싸요</b>. 다만 ${mLabel(low.m)}엔 ${won(low.p)}까지 내려간 적이 있어요.`
     : `이번 가격은 평소 시세(${won(usual)} 안팎)와 비슷하거나 조금 높아요. 제일 쌌던 건 ${mLabel(low.m)}의 ${won(low.p)}이었어요.`;
+  // 가로축: 「이번 딜」은 오른쪽 끝에 붙어 넓으니 그 앞 4분의 1에는 달 이름을 안 둔다 (폰에서 「10월이번 딜」로 붙었다)
   return `<h3 style="margin:18px 0 6px;font-size:15px">이 상품의 1년 시세</h3><p class="trend-head">${head}</p>`
     + lineChart({ pts: [...pts.map((x, i) => ({ x: i / pts.length, v: x.p })), { x: 1, v: p }], color: 'var(--mid)', tail: true, aria: `월별 최저가 그래프, 평소 ${won(usual)} 안팎, 이번 딜 ${won(p)}`,
       lowLabel: `${mLabel(low.m)} 최저 ${won(low.p)}`, me: pts.length, meLabel: `이번 딜 ${won(p)}`,
-      xs: [...pts.map((x, i) => ({ x: i / pts.length, t: mLabel(x.m) })).filter((o, i) => i % 2 === 0 && o.x < 0.75), { x: 1, t: '이번 딜', me: true }]   // 「이번 딜」은 오른쪽 끝에 붙어 넓으니 그 앞 4분의 1에는 달 이름을 안 둔다 (폰에서 「10월이번 딜」로 붙었다) })
+      xs: [...pts.map((x, i) => ({ x: i / pts.length, t: mLabel(x.m) })).filter((o, i) => i % 2 === 0 && o.x < 0.75), { x: 1, t: '이번 딜', me: true }] })
     + `<p class="note">회색 선은 같은 규격 상품이 달마다 가장 싸게 팔렸던 값이고, 맨 끝 빨간 점선이 이번 딜 가격이에요.${pts.length < raw.length ? ' 구성이 달라 보이는 값은 뺐어요.' : ''}</p>`;
 };
 // 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
