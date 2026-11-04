@@ -426,7 +426,7 @@ const verifyBox = d => {
   const spec = Array.isArray(d.spec) ? d.spec.filter(Boolean) : [];
   if (!items.length && !spec.length) return '';
   return `<section class="about"><h2>보낸 시점에 확인한 것</h2>${items.length ? `<ul class="vlist">${items.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
-${spec.length ? `<p style="margin:12px 0 6px">제조사 표기 스펙 (다나와)</p><ul class="chips specs">${spec.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+${spec.length ? `<p style="margin:12px 0 6px">제조사 표기 스펙</p><ul class="chips specs">${spec.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
 <p class="note">${dateTime(d.sentAt)}에 ${d.web ? '사이트에 올리면서' : '카톡방에 보내면서'} 함께 확인한 값입니다. 지금은 다를 수 있어요.</p></section>`;
 };
 
