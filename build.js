@@ -288,7 +288,7 @@ const spark = (arr, usc, uarr, me) => {
 <path d="${line} L ${xy[xy.length - 1][0].toFixed(1)} ${H} L ${xy[0][0].toFixed(1)} ${H} Z" fill="var(--brand-soft)"/><path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
 ${xy.map((p, i) => `<g><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="${i === iLow ? 'var(--brand)' : 'var(--paper)'}" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--brand)" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" stroke-opacity="${i === iLow ? 1 : .35}" vector-effect="non-scaling-stroke"/>${pts[i] === me ? `<path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--ink)" stroke-width="13" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--paper)" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : ''}</g>`).join('')}</svg>
 <div class="lbl"><span>${dateShort(pts[0].sentAt)}</span><span>${unit ? usc.label + ' · ' : ''}가장 낮음 ${won(lo)} · 가장 높음 ${won(hi)}</span><span>${dateShort(pts[pts.length - 1].sentAt)}</span></div>
-<p class="note sparktip">${me && pts.includes(me) ? `검은 테 점이 이번 딜(${won(val(me))}), 빨간 점이 가장 낮았던 때예요. ` : ''}${unit ? `용량이 달라 ${usc.label} 가격으로 그렸어요.` : ''}</p></div>
+<p class="note sparktip">${me && pts.includes(me) ? `검은 테 점이 이번 딜(${won(val(me))}), 빨간 점이 가장 낮았던 때예요. ` : ''}${unit && !me ? `용량이 달라 ${usc.label} 가격으로 그렸어요.` : ''}</p></div>
 `;
 };
 
@@ -429,12 +429,12 @@ const trendChart = d => {
   const low = pts.reduce((a, b) => (b.p < a.p ? b : a));
   const mLabel = m => `${+m.slice(3)}월`;
   const ours = d.price > 0 ? `<line x1="${P}" x2="${W - P}" y1="${Y(d.price).toFixed(1)}" y2="${Y(d.price).toFixed(1)}" stroke="var(--brand)" stroke-dasharray="6 5" stroke-width="1.5" vector-effect="non-scaling-stroke"/>` : '';
-  return `<h3 style="margin:16px 0 6px;font-size:15px">1년 가격 흐름 <small style="color:var(--dim);font-weight:400">월별 최저가 · 점선은 이번 딜 ${won(d.price)}</small></h3>
+  return `<h3 style="margin:16px 0 2px;font-size:15px">① 이 상품의 1년 시세</h3><p class="note" style="margin:0 0 8px">같은 규격 상품이 시장에서 달마다 가장 싸게 팔린 값을 이었어요. 점선은 이번 딜 가격 ${won(d.price)}.</p>
 <div class="spark" role="img" aria-label="월별 최저가 그래프, 가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
 ${ours}<path d="${line}" fill="none" stroke="var(--dim)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
 ${pts.map((x, i) => `<circle cx="${X(i)}" cy="${Y(x.p)}" r="${x === low ? 5 : 3}" fill="${x === low ? 'var(--ink)' : 'var(--paper)'}" stroke="var(--dim)" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join('')}</svg>
 <div class="lbl"><span>${mLabel(pts[0].m)}</span><span>가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}</span><span>${mLabel(pts[pts.length - 1].m)}</span></div></div>
-<p class="note">${pts.length < raw.length ? '구성이 다른 것으로 보이는 값은 뺐습니다. ' : ''}월별 최저가는 그 달 가장 낮았던 한 순간의 값이에요.</p>`;
+<p class="note">${pts.length < raw.length ? '구성이 다른 것으로 보이는 값은 뺐습니다. ' : ''}달마다 가장 낮았던 한 순간의 값이라, 그 값에 늘 살 수 있었던 건 아니에요.</p>`;
 };
 // 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
 const compsTable = d => {
@@ -500,8 +500,10 @@ const freqBox = d => {
   }
   const ug = unitGroup(d);
   const gw = kwOf(d).filter(w => byKw[w].length >= 3).sort((a, b) => (TYPE_WORDS.has(b) - TYPE_WORDS.has(a)) || (byKw[a].length - byKw[b].length))[0];
-  const chart = ug ? spark(ug.arr, ug.sc, ug.arr, d) : gw ? spark(byKw[gw], null, null, d) : '';
-  return `<section class="about"><h2>${head}</h2><p style="line-height:1.85">${text}<br>이번 가격을 놓쳤다면 다음 딜은 카톡방에서 먼저 받아 볼 수 있어요.</p>${chart ? `<h3 style="margin:14px 0 6px;font-size:15px">${esc(ug ? ug.w : gw)} 딜 가격 기록</h3>${chart}` : ''}</section>`;
+  const gp = gw ? byKw[gw].map(x => x.price).filter(p => p > 0) : [];
+  const chart = ug ? spark(ug.arr, ug.sc, ug.arr, d) : gw && Math.max(...gp) <= 3 * Math.min(...gp) ? spark(byKw[gw], null, null, d) : '';
+  const cw = ug ? ug.w : gw, cn = ug ? ug.arr.length : gw ? byKw[gw].length : 0;
+  return `<section class="about"><h2>${head}</h2><p style="line-height:1.85">${text}<br>이번 가격을 놓쳤다면 다음 딜은 카톡방에서 먼저 받아 볼 수 있어요.</p>${chart ? `<h3 style="margin:14px 0 2px;font-size:15px">${verifyBox(d).includes('이 상품의 1년 시세') ? '② ' : ''}핫딜베스트가 고른 ${esc(cw)} 딜 ${cn}건${ug ? ` (${ug.sc.label})` : ''}</h3><p class="note" style="margin:0 0 8px">이 상품 하나가 아니라, 이름에 「${esc(cw)}」 단어가 들어간 딜을 고른 날짜순으로 이었어요${ug ? `. 용량이 달라 ${ug.sc.label} 가격으로 바꿨어요` : ''}.</p>${chart}` : ''}</section>`;
 };
 
 const about = (d, kws) => {
