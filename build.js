@@ -195,8 +195,9 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .stack{display:grid;gap:10px}
 .note{font-size:12.5px;color:var(--dim);margin:6px 0 0}.note a{color:var(--mid)}
 .about p{color:var(--mid);margin:0;max-width:68ch}
+.price .best{display:inline-flex;align-items:center;font-size:13px;font-weight:700;color:var(--paper);background:var(--brand-ink);border-radius:999px;padding:4px 10px;margin-left:6px;vertical-align:middle}
 .about b,.vlist b{color:var(--brand-ink);font-weight:700}
-.about > p{line-height:1.85;margin:0 0 10px}.lead + .lead{margin-top:-6px}.about > p:last-of-type{margin-bottom:0}.about .note{margin-top:8px}.tbl td.gain{color:var(--brand-ink);font-weight:700}
+.about > p{line-height:1.85;margin:0 0 10px}.lead + .lead{margin-top:-6px}.about > p:last-of-type{margin-bottom:0}.about .note{margin-top:8px}.stack.again{margin-top:18px}.tbl td.gain{color:var(--brand-ink);font-weight:700}
 .join{background:var(--ink);color:var(--paper);border-radius:22px;padding:22px 20px;margin:30px 0 0;display:grid;gap:6px}
 .join h3{margin:0;font-size:19px;letter-spacing:-.035em}.join p{margin:0 0 8px;color:color-mix(in srgb,var(--paper) 72%,transparent);font-size:14px}
 .join .assure{color:color-mix(in srgb,var(--paper) 70%,transparent)}
@@ -501,7 +502,7 @@ const trendChart = d => {
 // 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
 const compsTable = d => {
   const cs = Array.isArray(d.comps) ? d.comps.filter(c => c && c.price > 0).slice(0, 4) : [];
-  if (!cs.length || !(d.price > 0)) return '';
+  if (cs.length < 2 || !(d.price > 0)) return '';   // 한 곳뿐이면 위 비교 상자·문장과 같은 말이다
   return `<h3 style="margin:18px 0 6px;font-size:15px">다른 곳은 얼마였을까요?</h3><div class="tbl"><table><thead><tr><th>어디</th><th class="r">가격</th><th class="r">이번 딜과 차이</th></tr></thead><tbody>
 <tr class="low"><td><b>이번 딜</b> · ${esc(d.mall)}</td><td class="r">${won(d.price)}</td><td class="r">–</td></tr>
 ${cs.map(c => `<tr><td>${esc(c.name || '다른 곳')}</td><td class="r">${won(c.price)}</td><td class="r${c.price > d.price ? ' gain' : ''}">${c.price > d.price ? '+' + won(c.price - d.price) : c.price < d.price ? '−' + won(d.price - c.price) : '같음'}</td></tr>`).join('')}
@@ -546,7 +547,7 @@ const storyBox = d => {
   return `<section class="about story"><h2>이 가격, 얼마나 싼 거예요?</h2>${P.map(p => `<p>${p}</p>`).join('')}
 ${compsTable(d)}${trendChart(d)}
 ${spec.length ? `<h3 style="margin:18px 0 6px;font-size:15px">이런 상품이에요</h3><ul class="chips specs">${spec.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="note">제조사가 적은 내용이에요.</p>` : ''}
-<p class="note">${dateTime(d.sentAt)}에 확인한 값이라 지금은 다를 수 있어요. 사기 전에 판매처 가격을 한 번 더 봐 주세요.</p></section>`;
+${buyLink(d) ? `<div class="stack again">${buyLink(d)}</div>` : ''}</section>`;
 };
 
 // 얼마나 자주 뜨나 (11/4) — 「놓쳤지만 또 온다」. 끝난 딜 페이지로 들어온 사람에게 다음 딜을 기다릴 근거를 준다.
@@ -576,7 +577,7 @@ const freqBox = d => {
   const ug = unitGroup(d);
   const gw = kwOf(d).filter(w => byKw[w].length >= 3).sort((a, b) => (TYPE_WORDS.has(b) - TYPE_WORDS.has(a)) || (byKw[a].length - byKw[b].length))[0];
   const gp = gw ? byKw[gw].map(x => x.price).filter(p => p > 0) : [];
-  const chart = ug ? spark(ug.arr, ug.sc, ug.arr, d) : gw && Math.max(...gp) <= 3 * Math.min(...gp) ? spark(byKw[gw], null, null, d) : '';
+  const chart = ug ? spark(ug.arr, ug.sc, ug.arr, d) : gw && TYPE_WORDS.has(gw) && Math.max(...gp) <= 3 * Math.min(...gp) ? spark(byKw[gw], null, null, d) : '';
   const cw = ug ? ug.w : gw, cn = ug ? ug.arr.length : gw ? byKw[gw].length : 0;
   return `<section class="about"><h2>${head}</h2><p>${text}</p><p>이번 걸 놓쳤다면, 카톡방에서 다음 딜을 먼저 받아 보세요.</p>${chart ? `<h3 style="margin:14px 0 2px;font-size:15px">${trendChart(d) ? '② ' : ''}핫딜베스트가 고른 ${esc(cw)} 딜 ${cn}개${ug ? `, ${ug.sc.label} 가격` : ''}</h3><p class="note" style="margin:0 0 8px">이 상품만이 아니라, 이름에 「${esc(cw)}」 단어가 들어간 딜을 날짜순으로 이었어요${ug ? `. 용량이 제각각이라 ${ug.sc.label} 가격으로 바꿨어요` : ''}.</p>${chart}` : ''}</section>`;
 };
@@ -594,7 +595,9 @@ const add = (rel, lastmod) => urls.push([rel, lastmod]);
 for (const d of deals) {
   const kws = kwOf(d);
   const related = [...new Map(kws.flatMap(w => byKw[w]).filter(x => x.uid !== d.uid).map(x => [x.uid, x])).values()].slice(0, 6);
-  const sameMall = (byMall[d.mall] || []).filter(x => x.uid !== d.uid && !related.includes(x)).slice(0, 6);
+  const myCats = catOf(d);
+  const sameMall = (byMall[d.mall] || []).filter(x => x.uid !== d.uid && !related.includes(x))
+    .map((x, i) => [x, (catOf(x).some(c => myCats.includes(c)) ? 0 : 1e6) + i]).sort((a, b) => a[1] - b[1]).map(p => p[0]).slice(0, 6);
   const ug = unitGroup(d);
   const desc = `${dateKo(d.sentAt)} ${d.mall} ${won(d.price)}` + (ug ? `(${ug.sc.label} ${unitWon(d, ug.sc)})` : '') + '.'
     + (d.baseline ? ` 다른 곳 ${won(d.baseline)}보다 ${d.saving}% 싸게 떠서 핫딜베스트가 고른 딜이에요.` : ' 핫딜베스트가 고른 딜이에요.');
@@ -616,9 +619,9 @@ ${d.baselineNote ? `<p>${esc(d.baselineNote)} · 보낸 시점에 함께 확인�
 <div class="shot">${d.image ? `<img src="${esc(d.image)}" alt="${esc(d.title)}" referrerpolicy="no-referrer">` : ''}</div>
 <div><span class="when"><span class="mall">${esc(d.mall)}</span>${dateKo(d.sentAt)} ${d.web ? '확인 · 사이트에만 올린 딜' : '카톡방에 보냄'}</span>
 <h1>${esc(d.title)}</h1>
-<div class="price"><b>${won(d.price)}</b>${d.saving ? `<span class="save">다른 곳보다 ${d.saving}% 쌈</span>` : ''}</div>
+<div class="price"><b>${won(d.price)}</b>${d.saving ? `<span class="save">다른 곳보다 ${d.saving}% 쌈</span>` : ''}${d.hist && d.hist.cheaper ? `<span class="best">${HIST_TERM[d.hist.months] || d.hist.months + '개월'} 중 최저</span>` : ''}</div>
 ${cmp}
-<p class="warn"><b>⚠ ${dateTime(d.sentAt)} 기준 가격이에요</b><span>가격이 바뀌었다면 이미 끝난 딜이에요. 사기 전에 판매처 가격을 꼭 확인해 주세요.</span></p>
+<p class="warn"><b>⚠ ${dateTime(d.sentAt)} 기준 가격이에요<span class="ago" data-t="${esc(d.sentAt)}"></span></b><span>가격이 바뀌었다면 이미 끝난 딜이에요. 사기 전에 판매처 가격을 꼭 확인해 주세요.</span></p>
 <div class="stack">${buyLink(d)}</div>
 </div></div>
 ${storyBox(d)}
@@ -631,7 +634,9 @@ ${join}
 ${catOf(d).filter(c => CATL.includes(c)).length ? `<h2>어느 분류예요?</h2><ul class="chips">${catOf(d).filter(c => CATL.includes(c)).map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}개</em></a></li>`).join('')}</ul>` : ''}
 ${kws.length ? `<h2>같은 품목 가격 기록 보기</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}개</em></a></li>`).join('')}</ul>` : ''}
 ${related.length ? `<h2>이런 딜은 어때요?</h2>${grid(related)}` : ''}
-${sameMall.length ? `<h2>${esc(d.mall)}에서 최근에 뜬 딜</h2>${grid(sameMall)}` : ''}`;
+${sameMall.length ? `<h2>${esc(d.mall)}에서 최근에 뜬 딜</h2>${grid(sameMall)}` : ''}
+<script>(function(){var e=document.querySelector('.ago');if(!e)return;var m=(Date.now()-Date.parse(e.getAttribute('data-t')))/6e4;if(!(m>=0))return;
+e.textContent=' · '+(m<60?'방금 전':m<1440?Math.floor(m/60)+'시간 전':Math.floor(m/1440)+'일 전');})();</script>`;
   // 그래프가 둘 다 있을 때만 ①② 번호를 단다 (하나뿐인데 ① 이 붙어 있었다)
   const bodyN = body.includes('② 핫딜베스트가 고른') ? body.replace('>이 상품의 1년 시세</h3>', '>① 이 상품의 1년 시세</h3>') : body;
   write(decodeURIComponent(dealUrl(d)).slice(1) + 'index.html', page({ title: `${d.title} ${won(d.price)} 핫딜 - ${SITE}`, desc, canon: dealUrl(d), body: bodyN, img: d.image,
