@@ -200,7 +200,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .join .assure{color:color-mix(in srgb,var(--paper) 70%,transparent)}
 /* 표·차트 */
 .spark{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:14px 14px 8px;margin:0 0 6px}
-.spark svg{width:100%;height:120px;display:block}.spark .lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.spark svg{width:100%;height:120px;display:block}.spark .pt{cursor:pointer}.spark .sparktip{margin:6px 0 2px}.spark .lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
 .tbl{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 table{width:100%;border-collapse:collapse;font-size:13.5px}th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 th{font-size:12px;color:var(--dim);font-weight:700;background:var(--soft)}tr:last-child td{border-bottom:0}
@@ -267,18 +267,32 @@ const buyLink = d => {
   return `<a class="btn" href="${esc(href)}" target="_blank" rel="nofollow sponsored noopener">${label}</a><p class="note">${esc(disclosureFor(d.mall))}</p>`;
 };
 
-// 가격 기록 선 그래프 (오래된 것 → 최근)
-const spark = arr => {
-  const pts = arr.filter(d => d.price > 0).slice().reverse();
+// 가격 기록 선 그래프 (11/4 고침 — 사장님 요청 셋)
+//  1) 가로축은 실제 날짜 간격. 예전엔 보낸 순서대로 같은 간격이라 몰린 날·빈 주가 똑같이 보였다
+//  2) 단가를 읽을 수 있는 품목(unit 무리 3건 이상)은 단가로 그린다 — 용량이 다른 상품을 총액으로 이으면 오르내림이 거짓말이 된다
+//  3) 점에 손을 대거나 누르면 아래 줄에 날짜·상품·가격이 뜬다 (자바스크립트 없으면 마우스 툴팁만)
+// 점은 길이 0 선의 둥근 끝으로 찍는다 — preserveAspectRatio="none" 이라 원(circle)은 폰에서 찌그러진다
+const spark = (arr, usc, uarr) => {
+  const unit = !!(usc && uarr && uarr.length >= 3);
+  const val = d => (unit ? Math.round(UNITS.get(d.uid).per * usc.k) : d.price);
+  const pts = (unit ? uarr : arr).filter(d => d.price > 0).slice().sort((a, b) => a.sentAt.localeCompare(b.sentAt));
   if (pts.length < 2) return '';
-  const W = 600, H = 120, P = 10, ps = pts.map(d => d.price), lo = Math.min(...ps), hi = Math.max(...ps), span = hi - lo || 1;
-  const xy = pts.map((d, i) => [P + (W - 2 * P) * i / (pts.length - 1), P + (H - 2 * P) * (1 - (d.price - lo) / span)]);
+  const W = 600, H = 120, P = 12, vs = pts.map(val), lo = Math.min(...vs), hi = Math.max(...vs), span = hi - lo || 1;
+  const ts = pts.map(d => Date.parse(d.sentAt)), t0 = ts[0], t1 = ts[ts.length - 1];
+  const X = i => P + (W - 2 * P) * (t1 > t0 ? (ts[i] - t0) / (t1 - t0) : i / (pts.length - 1));
+  const Y = v => P + (H - 2 * P) * (1 - (v - lo) / span);
+  const xy = pts.map((d, i) => [X(i), Y(vs[i])]);
   const line = xy.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
-  const iLow = ps.indexOf(lo);
-  return `<div class="spark" role="img" aria-label="가격 기록 그래프, 가장 낮은 가격 ${won(lo)}"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-<path d="${line} L ${xy[xy.length - 1][0]} ${H} L ${xy[0][0]} ${H} Z" fill="var(--brand-soft)"/><path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
-${xy.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${i === iLow ? 5 : 3}" fill="${i === iLow ? 'var(--brand)' : 'var(--paper)'}" stroke="var(--brand)" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join('')}</svg>
-<div class="lbl"><span>${dateShort(pts[0].sentAt)}</span><span>가장 낮음 ${won(lo)} · 가장 높음 ${won(hi)}</span><span>${dateShort(pts[pts.length - 1].sentAt)}</span></div></div>`;
+  const iLow = vs.indexOf(lo), what = unit ? usc.label + ' 가격' : '가격';
+  const tip = (d, i) => `${dateShort(d.sentAt)} · ${d.title} · ${won(d.price)}${unit ? ` (${usc.label} ${won(vs[i])})` : ''}`;
+  return `<div class="spark" role="img" aria-label="${what} 기록 그래프, 가장 낮은 ${what} ${won(lo)}"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+<path d="${line} L ${xy[xy.length - 1][0].toFixed(1)} ${H} L ${xy[0][0].toFixed(1)} ${H} Z" fill="var(--brand-soft)"/><path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+${xy.map((p, i) => `<g class="pt" data-t="${esc(tip(pts[i], i))}" data-u="${dealUrl(pts[i])}"><title>${esc(tip(pts[i], i))}</title><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="transparent" stroke-width="22" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="${i === iLow ? 'var(--brand)' : 'var(--paper)'}" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--brand)" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" stroke-opacity="${i === iLow ? 1 : .35}" vector-effect="non-scaling-stroke"/></g>`).join('')}</svg>
+<div class="lbl"><span>${dateShort(pts[0].sentAt)}</span><span>${unit ? usc.label + ' · ' : ''}가장 낮음 ${won(lo)} · 가장 높음 ${won(hi)}</span><span>${dateShort(pts[pts.length - 1].sentAt)}</span></div>
+<p class="note sparktip">${unit ? `용량이 달라 ${usc.label} 가격으로 그렸어요. ` : ''}점을 누르면 어떤 딜이었는지 보여요.</p></div>
+<script>(function(){var b=document.currentScript.previousElementSibling;var t=b&&b.querySelector('.sparktip');if(!t)return;
+[].forEach.call(b.querySelectorAll('.pt'),function(g){function show(){t.innerHTML='';t.appendChild(document.createTextNode(g.getAttribute('data-t')+' '));var a=document.createElement('a');a.href=g.getAttribute('data-u');a.textContent='보기 →';t.appendChild(a);}
+g.addEventListener('mouseenter',show);g.addEventListener('click',show);});})();</script>`;
 };
 
 // 홈의 「최근 보낸 딜」 을 실시간으로 채운다 (lp/02 와 같은 파이어베이스 경로).
@@ -588,7 +602,7 @@ ${months.map(k => { const a = byMonth[k], lo = a.reduce((x, y) => (y.price > 0 &
 ${unitTable(uarr.slice(0, 15), usc, null)}<p class="note">용량·개수는 상품 이름에서 읽었습니다. 이름만으로 단가를 알 수 없는 딜은 빠져 있어요.</p>` : '';
   const body = `<h1>${esc(w)} 핫딜·가격 기록</h1>
 <p class="lead">핫딜베스트가 고른 <b>${esc(w)}</b> 딜 ${arr.length}건입니다.${(f => f.gap ? ` ${dateShort(f.first)}부터 평균 <b>${f.gap}일</b>에 한 번꼴로 떴어요.` : '')(freqOf(appearOf(arr)))} 이 중 가장 낮았던 가격은 <span class="hl">${won(min.price)}</span>(${dateTime(min.sentAt)}, ${esc(min.mall)})이에요.${usc ? ` 용량이 달라 ${usc.label} 가격으로 보면 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)})이 가장 쌌습니다.` : ' 상품 구성이 서로 달라 단순 비교는 어렵습니다.'}</p>
-${spark(arr)}
+${spark(arr, usc, uarr)}
 ${unitBox}
 ${monthTbl}
 <h2>날짜별 가격 <small>${arr.length}건</small></h2><div class="tbl"><table><thead><tr><th>날짜</th><th>상품</th><th class="r">가격</th></tr></thead><tbody>
