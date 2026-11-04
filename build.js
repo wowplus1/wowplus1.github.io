@@ -450,15 +450,15 @@ const verifyBox = d => {
   const c = d.check;
   if (c && c.market > 0) {
     const ship = c.ship === 0 ? ' (무료배송)' : c.ship > 0 ? ` (배송비 ${won(c.ship)} 별도)` : (c.delivered > c.market ? ` (배송비까지 치면 ${won(c.delivered)})` : '');
-    li.push(`다나와에서 같은 규격을 ${c.malls > 1 ? `${c.malls}곳이 팔고 있었고, 그중 최저가는` : '파는 곳은 한 곳, 가격은'} <b>${won(c.market)}</b>이었습니다${ship}.`);
+    li.push(`같은 규격을 ${c.malls > 1 ? `${c.malls}곳이 팔고 있었고, 그중 최저가는` : '파는 곳은 한 곳, 가격은'} <b>${won(c.market)}</b>이었습니다${ship}.`);
   } else if (d.alt && d.alt.price > 0) {
     li.push(`다른 곳 가격은 ${won(d.alt.price)}이었습니다${d.alt.where ? ` (${esc(d.alt.where)})` : ''}. 차이가 작아 할인율은 따로 적지 않았어요.`);
   }
   const h = d.hist;
   if (h && h.months) {
     const term = HIST_TERM[h.months] || `${h.months}개월`;
-    li.push(h.cheaper ? `다나와 가격 기록으로 ${term} 안에서 <b>가장 싼 값</b>이었습니다.`
-      : h.low > 0 ? `그때 시세보다는 쌌지만, 다나와 가격 기록으로 ${term} 사이 <b>${won(h.low)}</b>까지 내려간 적이 있습니다.` : '');
+    li.push(h.cheaper ? `가격 기록으로 ${term} 안에서 <b>가장 싼 값</b>이었습니다.`
+      : h.low > 0 ? `그때 시세보다는 쌌지만, 가격 기록으로 ${term} 사이 <b>${won(h.low)}</b>까지 내려간 적이 있습니다.` : '');
   }
   const r = d.review;
   if (r && r.count >= 100) li.push(`상품평 ${Number(r.count).toLocaleString('ko-KR')}개, 평균 ${r.score}점${r.low > 0 ? ` (낮은 별점 ${Number(r.low).toLocaleString('ko-KR')}개)` : ' (낮은 별점 없음)'}.`);
