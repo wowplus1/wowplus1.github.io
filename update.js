@@ -9,6 +9,7 @@
 const fs = require('fs'), path = require('path');
 const RAW = 'https://raw.githubusercontent.com/wowplus1/hotdeal-feed/main/';
 const API = 'https://api.github.com/repos/wowplus1/hotdeal-feed/contents/';
+const FB = 'https://hotdeal-feed-default-rtdb.asia-southeast1.firebasedatabase.app/feed/items.json';
 const F = path.join(__dirname, 'archive.json');
 
 async function read(name) {
@@ -40,7 +41,14 @@ async function read(name) {
     resent++;
   };
   for (const it of await read('web.json')) merge(it, true);
-  for (const it of await read('deals.json')) merge(it, false);
+  // 카톡 발송분은 파이어베이스에서 먼저 읽는다 (11/4) — 깃허브 raw 는 5분 캐시라 방금 보낸 딜이 안 보여 사이트가 4~7분 늦었다.
+  // 파이어베이스는 캐시가 없다. 실패하거나 비면 예전처럼 깃허브 deals.json 으로.
+  let live = [];
+  try {
+    const r = await fetch(FB + '?orderBy=%22sentMs%22&limitToLast=100', { signal: AbortSignal.timeout(15000) });
+    if (r.ok) live = Object.values((await r.json()) || {}).filter(x => x && x.uid && x.title && x.sentAt).map(({ sentMs, ...x }) => x);
+  } catch (e) { live = []; }
+  for (const it of live.length ? live : await read('deals.json')) merge(it, false);
 
   // 사이트 전용 꼬리표 링크 (10/23). 카톡과 같은 제휴 링크를 쓰면 사이트 손님의 주문을 가를 수 없다.
   // hotdeal.best 는 머투 손님(쿠키 ref_ch=hotdealbest_a02)에게 꼬리표가 붙은 긴 링크를 준다 —

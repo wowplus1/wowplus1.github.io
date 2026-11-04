@@ -608,6 +608,23 @@ const freqBox = d => {
 };
 
 
+// 상세 윗부분(사진·가격·비교 상자·경고·구매 버튼). 정식 페이지와 임시 화면(/new/)이 같이 쓴다
+const dealTop = d => {
+  const cmp = d.baseline && d.price ? `<div class="cmp" aria-label="가격 비교">
+<div class="row us"><b>이 딜</b><span class="bar"><i style="width:${Math.max(6, Math.round(d.price / d.baseline * 100))}%"></i></span><span>${won(d.price)}</span></div>
+<div class="row"><span>다른 곳</span><span class="bar"><i style="width:100%"></i></span><span>${won(d.baseline)}</span></div>
+${d.baselineNote ? `<p>${esc(noteKo(d.baselineNote))} · 보낸 때 함께 확인한 가격</p>` : ''}</div>` : '';
+  return `<div class="deal">
+<div class="shot">${d.image ? `<img src="${esc(d.image)}" alt="${esc(d.title)}" referrerpolicy="no-referrer">` : ''}</div>
+<div><span class="when"><span class="mall">${esc(d.mall)}</span>${dateKo(d.sentAt)} ${d.web ? '확인 · 사이트에만 올린 딜' : '카톡방에 보냄'}</span>
+<h1>${esc(d.title)}</h1>
+<div class="price"><b>${won(d.price)}</b>${d.saving ? `<span class="save">다른 곳보다 ${d.saving}% 쌈</span>` : ''}${d.hist && d.hist.cheaper ? `<span class="best">${HIST_TERM[d.hist.months] || d.hist.months + '개월'} 중 최저</span>` : ''}</div>
+${cmp}
+<p class="warn"><b>⚠ ${dateTime(d.sentAt)} 기준 가격이에요<span class="ago" data-t="${esc(d.sentAt)}"></span></b><span>가격이 바뀌었다면 이미 끝난 딜이에요. 사기 전에 판매처 가격을 꼭 확인해 주세요.</span></p>
+<div class="stack">${buyLink(d)}</div>
+</div></div>`;
+};
+
 // ── 만들기 ──
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
@@ -636,19 +653,7 @@ for (const d of deals) {
       + (ug.rank > 1 ? ` 제일 쌌던 건 ${dateShort(lo.sentAt)} ${esc(lo.mall)}의 ${ug.sc.label} ${unitWon(lo, ug.sc)}이었어요.` : ' 지금까지 고른 것 중에 <b>제일 싸요</b>.') + `</p>
 ${unitTable(rows, ug.sc, d)}<p class="note">용량·개수는 상품 이름에서 읽었어요. 브랜드나 구성이 달라서 참고로만 봐 주세요.</p></section>`;
   }
-  const cmp = d.baseline && d.price ? `<div class="cmp" aria-label="가격 비교">
-<div class="row us"><b>이 딜</b><span class="bar"><i style="width:${Math.max(6, Math.round(d.price / d.baseline * 100))}%"></i></span><span>${won(d.price)}</span></div>
-<div class="row"><span>다른 곳</span><span class="bar"><i style="width:100%"></i></span><span>${won(d.baseline)}</span></div>
-${d.baselineNote ? `<p>${esc(noteKo(d.baselineNote))} · 보낸 때 함께 확인한 가격</p>` : ''}</div>` : '';
-  const body = `<div class="deal">
-<div class="shot">${d.image ? `<img src="${esc(d.image)}" alt="${esc(d.title)}" referrerpolicy="no-referrer">` : ''}</div>
-<div><span class="when"><span class="mall">${esc(d.mall)}</span>${dateKo(d.sentAt)} ${d.web ? '확인 · 사이트에만 올린 딜' : '카톡방에 보냄'}</span>
-<h1>${esc(d.title)}</h1>
-<div class="price"><b>${won(d.price)}</b>${d.saving ? `<span class="save">다른 곳보다 ${d.saving}% 쌈</span>` : ''}${d.hist && d.hist.cheaper ? `<span class="best">${HIST_TERM[d.hist.months] || d.hist.months + '개월'} 중 최저</span>` : ''}</div>
-${cmp}
-<p class="warn"><b>⚠ ${dateTime(d.sentAt)} 기준 가격이에요<span class="ago" data-t="${esc(d.sentAt)}"></span></b><span>가격이 바뀌었다면 이미 끝난 딜이에요. 사기 전에 판매처 가격을 꼭 확인해 주세요.</span></p>
-<div class="stack">${buyLink(d)}</div>
-</div></div>
+  const body = `${dealTop(d)}
 ${storyBox(d)}
 ${unitSec}
 ${freqBox(d)}
@@ -819,51 +824,29 @@ ${sbox()}
 ${joinPlain}${liveScript(deals.map(d => String(d.uid)))}` }));
 add('/', kst(deals[0].sentAt).ymd);
 
-// 방금 들어온 딜의 상세. 정적 페이지가 만들어지기 전(최대 10~20분)에만 쓴다.
-// 파이어베이스 feed/items/<uid> 를 읽어 딜 상세와 같은 모양으로 그린다. 정적 페이지가 생겼으면 그리로 넘긴다.
+// 방금 들어온 딜의 상세. 정식 페이지가 만들어지기 전(보통 몇 분)에만 쓴다.
+// 정식 페이지와 같은 함수(dealTop·storyBox 와 그 재료)를 그대로 브라우저에 넘겨 같은 모양으로 그린다 — 따로 짜면 둘이 어긋난다.
 // 검색엔진에는 안 보인다(noindex) — 같은 딜의 정적 페이지가 곧 생기기 때문이다.
+const CLIENT = [
+  `var DISCLOSURE = ${JSON.stringify(DISCLOSURE)}, HIST_TERM = ${JSON.stringify(HIST_TERM)}, SRC = ${JSON.stringify(SRC)};`,
+  'var sameItems = function () { return []; };',   // 지난 기록은 정식 페이지에서
+  ...Object.entries({ esc, won, kst, dateKo, dateTime, dateShort, noteKo, disclosureFor, buyLink, niceStep, lineChart, trendChart, compsTable, storyBox, dealTop })
+    .map(([k, f]) => `var ${k} = ${f.toString()};`),
+].join('\n');
 write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 핫딜', canon: '/new/', noindex: true,
   body: `<div id="nd"><p class="lead">딜을 불러오고 있어요…</p></div>${join}<script>
 (function () {
-  var DISC = ${JSON.stringify(DISCLOSURE)}, DEF = ${JSON.stringify(disclosureFor(''))};
+${CLIENT}
   var id = new URLSearchParams(location.search).get('id') || '';
   var box = document.getElementById('nd');
-  if (!/^\\d+$/.test(id)) { box.innerHTML = '<p class="lead">딜 번호가 없어요. <a href="/">홈으로</a></p>'; return; }
-  fetch('/deal/' + id + '/', { method: 'HEAD' }).then(function (r) { if (r.ok) location.replace('/deal/' + id + '/'); }).catch(function () {});
-  function won(n) { return Number(n) > 0 ? Number(n).toLocaleString('ko-KR') + '원' : ''; }
-  function ko(iso) { var m = String(iso).match(/(\\d{4})-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/); return m ? m[1] + '년 ' + (+m[2]) + '월 ' + (+m[3]) + '일 ' + m[4] + ':' + m[5] : ''; }
-  function short(iso) { var m = String(iso).match(/-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/); return m ? (+m[1]) + '/' + (+m[2]) + ' ' + m[3] + ':' + m[4] : ''; }
-  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  if (!/^[0-9]+$/.test(id)) { box.innerHTML = '<p class="lead">딜 번호가 없어요. <a href="/">홈으로</a></p>'; return; }
+  function ready() { fetch('/deal/' + id + '/', { method: 'HEAD', cache: 'no-store' }).then(function (r) { if (r.ok) location.replace('/deal/' + id + '/'); }).catch(function () {}); }
+  ready(); setInterval(ready, 30000);
   function draw(d) {
     if (!d || !d.uid || d.mall === '토스쇼핑' || /toss\\.(im|shopping)/.test(d.link || '')) { box.innerHTML = '<p class="lead">이 딜은 여기서 보여 드릴 수 없어요. <a href="/">홈으로</a></p>'; return; }
     document.title = d.title + ' ' + won(d.price) + ' 핫딜 - ${SITE}';
-    box.innerHTML = '';
-    var wrap = el('div', 'deal'), shot = el('div', 'shot');
-    if (d.image) { var im = el('img'); im.src = d.image; im.alt = d.title; im.referrerPolicy = 'no-referrer'; shot.appendChild(im); }
-    var info = el('div'), when = el('span', 'when');
-    when.appendChild(el('span', 'mall', d.mall || '')); when.appendChild(document.createTextNode(ko(d.sentAt) + ' 카톡방에 보냄'));
-    info.appendChild(when); info.appendChild(el('h1', '', d.title));
-    var pr = el('div', 'price'); pr.appendChild(el('b', '', won(d.price)));
-    if (d.saving) pr.appendChild(el('span', 'save', '다른 곳보다 ' + d.saving + '% 쌈'));
-    info.appendChild(pr);
-    if (d.baseline && d.price) {
-      var cmp = el('div', 'cmp');
-      [['us', '이 딜', d.price, Math.max(6, Math.round(d.price / d.baseline * 100))], ['', '다른 곳', d.baseline, 100]].forEach(function (x) {
-        var row = el('div', 'row ' + x[0]); row.appendChild(el(x[0] ? 'b' : 'span', '', x[1]));
-        var bar = el('span', 'bar'), i = el('i'); i.style.width = x[3] + '%'; bar.appendChild(i); row.appendChild(bar);
-        row.appendChild(el('span', '', won(x[2]))); cmp.appendChild(row);
-      });
-      if (d.baselineNote) cmp.appendChild(el('p', '', String(d.baselineNote).replace(/^판매글 (\\d+)곳 최저가/, '다른 판매처 $1곳 중 최저').replace(/^판매글 (\\d+)곳 중간값/, '다른 판매처 $1곳의 중간 가격') + ' · 보낸 때 함께 확인한 가격'));
-      info.appendChild(cmp);
-    }
-    var w = el('p', 'warn'); w.appendChild(el('b', '', '⚠ ' + short(d.sentAt) + ' 기준 가격이에요'));
-    w.appendChild(el('span', '', '가격이 바뀌었다면 이미 끝난 딜이에요. 사기 전에 판매처 가격을 꼭 확인해 주세요.')); info.appendChild(w);
-    if (d.link && !/hotdeal\\.best/.test(d.link)) {
-      var st = el('div', 'stack'), a = el('a', 'btn', (d.mall || '판매처') + '에서 지금 가격 보기 ↗');
-      a.href = d.link; a.target = '_blank'; a.rel = 'nofollow sponsored noopener'; st.appendChild(a);
-      st.appendChild(el('p', 'note', DISC[d.mall] || DEF)); info.appendChild(st);
-    }
-    wrap.appendChild(shot); wrap.appendChild(info); box.appendChild(wrap);
+    box.innerHTML = dealTop(d) + storyBox(d) + '<p class="note">같은 품목 딜과의 비교, 지난 기록은 몇 분 안에 채워져요. 준비되면 이 화면이 저절로 바뀌어요.</p>';
+    var e = box.querySelector('.ago'); if (e) { var m = (Date.now() - Date.parse(e.getAttribute('data-t'))) / 6e4; if (m >= 0) e.textContent = ' · ' + (m < 5 ? '방금 전' : m < 60 ? Math.floor(m) + '분 전' : m < 1440 ? Math.floor(m / 60) + '시간 전' : Math.floor(m / 1440) + '일 전'); }
   }
   fetch('https://hotdeal-feed-default-rtdb.asia-southeast1.firebasedatabase.app/feed/items/' + id + '.json')
     .then(function (r) { return r.json(); })
