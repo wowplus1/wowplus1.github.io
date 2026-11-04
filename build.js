@@ -429,7 +429,7 @@ const trendChart = d => {
   const low = pts.reduce((a, b) => (b.p < a.p ? b : a));
   const mLabel = m => `${+m.slice(3)}월`;
   const ours = d.price > 0 ? `<line x1="${P}" x2="${W - P}" y1="${Y(d.price).toFixed(1)}" y2="${Y(d.price).toFixed(1)}" stroke="var(--brand)" stroke-dasharray="6 5" stroke-width="1.5" vector-effect="non-scaling-stroke"/>` : '';
-  return `<h3 style="margin:16px 0 6px;font-size:15px">1년 가격 흐름 <small style="color:var(--dim);font-weight:400">다나와 월별 최저가 · 점선은 이번 딜 ${won(d.price)}</small></h3>
+  return `<h3 style="margin:16px 0 6px;font-size:15px">1년 가격 흐름 <small style="color:var(--dim);font-weight:400">월별 최저가 · 점선은 이번 딜 ${won(d.price)}</small></h3>
 <div class="spark" role="img" aria-label="월별 최저가 그래프, 가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
 ${ours}<path d="${line}" fill="none" stroke="var(--dim)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
 ${pts.map((x, i) => `<circle cx="${X(i)}" cy="${Y(x.p)}" r="${x === low ? 5 : 3}" fill="${x === low ? 'var(--ink)' : 'var(--paper)'}" stroke="var(--dim)" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join('')}</svg>
