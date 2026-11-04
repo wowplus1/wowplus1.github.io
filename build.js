@@ -294,7 +294,7 @@ const buyLink = d => {
 const niceStep = (lo, hi) => { const c = []; for (let e = Math.floor(Math.log10(Math.max(1, hi - lo))) - 2; c.length < 40; e++) for (const m of [1, 2, 2.5, 5]) c.push(m * Math.pow(10, e));
   return c.find(st => Math.ceil(hi / st) - Math.floor(lo / st) <= 5) || c[c.length - 1]; };
 const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria, band }) => {
-  // band: 면을 바닥이 아니라 기준선(ref)까지만 칠한다 — 시세와 이번 딜 사이의 차이가 곧 「싼 만큼」이다
+  // band: 면을 바닥이 아니라 기준선(ref)까지만 칠한다 — 시세와 이번 딜 사이의 차이가 곧 「싼 만큼」이다. 시세가 이번 딜보다 낮았던 달(필립스 10월)은 칠하지 않는다
   // pts: [{x: 0~1, v}] · me: pts 안의 이번 딜 번호 · ref: 가로 기준선 값(① 의 이번 딜 가격)
   const vs = pts.map(p => p.v).concat(ref > 0 ? [ref] : []);
   let lo = Math.min(...vs), hi = Math.max(...vs);
@@ -331,7 +331,7 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria,
   return `<div class="lc" style="--c:${color}" role="img" aria-label="${esc(aria)}"><div class="lc-plot">
 <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
 ${ticks.map(t => `<line x1="0" x2="100" y1="${Y(t).toFixed(2)}" y2="${Y(t).toFixed(2)}" class="lc-grid"/>`).join('')}
-${band && ref > 0 ? `<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} ${Y(ref).toFixed(2)} L ${X(pts[0].x).toFixed(2)} ${Y(ref).toFixed(2)} Z" class="lc-band"/>` : `<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} 100 L ${X(pts[0].x).toFixed(2)} 100 Z" class="lc-area"/>`}
+${band && ref > 0 ? `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(Math.max(p.v, ref)).toFixed(2)).join(' ')} L ${X(pts[pts.length - 1].x).toFixed(2)} ${Y(ref).toFixed(2)} L ${X(pts[0].x).toFixed(2)} ${Y(ref).toFixed(2)} Z" class="lc-band"/>` : `<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} 100 L ${X(pts[0].x).toFixed(2)} 100 Z" class="lc-area"/>`}
 ${ref > 0 ? `<line x1="0" x2="100" y1="${Y(ref).toFixed(2)}" y2="${Y(ref).toFixed(2)}" class="lc-ref"/>` : ''}
 <path d="${line}" class="lc-line"/></svg>
 ${ticks.map(t => `<span class="lc-y" style="top:${Y(t).toFixed(2)}%">${fmt(t)}</span>`).join('')}
