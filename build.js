@@ -65,7 +65,7 @@ const CATS = [
   ['커피·차', /커피|아메리카노|콜드브루|캡슐|돌체구스토|네스프레소|카누|맥심|조지아|티젠|쌍화|생강차|유자차|대추차/, /세제|캡슐세제/],
   ['우유·두유·요거트', /우유|두유|요거트|요구르트|엔요|그릭/],
   ['과자·간식', /과자|칩|스낵|쿠키|비스킷|비스코프|크래커|초콜릿|초코바|사탕|캔디|젤리|빈츠|칙촉|브라우니|오레오|아몬드|견과|도라야키|마시멜로|스니커즈|트윅스|츄파춥스|양갱|시리얼|그래놀라|콘푸로스트/, /토너|수딩|아동용|네파/],
-  ['즉석밥·간편식', /햇반|즉석밥|흑미밥|컵밥|볶음밥|만두|피자|곰탕|삼계탕|국밥|카레|수제비|떡볶이|어묵|가라아게|너겟|핫도그|돈까스|파스타|스파게티|마카로니|짜장/, /소스|라면/],
+  ['즉석밥·간편식', /햇반|즉석밥|흑미밥|컵밥|볶음밥|만두|피자|곰탕|삼계탕|국밥|카레|수제비|떡볶이|어묵|가라아게|너겟|용가리|핫도그|돈까스|파스타|스파게티|마카로니|짜장/, /소스|라면/],
   ['고기·수산', /한우|돼지|삼겹|목살|닭가슴살|훈제오리|오리훈제|오리 ?슬라이스|생오리|갈비|불고기|쭈꾸미|주꾸미|오징어|새우|고등어|연어|대게|랍스터|윙봉|닭다리|순살/, /간장|새우깡/],
   ['과일·채소', /감귤|한라봉|사과|샤인머스캣|딸기|고구마|다진마늘|양파|키위|자몽|과일|귤/, /주스|사과식초|음료|에이드/],
   ['소스·조미료', /소스|케찹|케첩|마요네즈|식초|된장|고추장|간장|굴소스|참기름|올리브유|식용유|설탕|소금|시럽|드레싱|스위트콘/],
@@ -346,6 +346,58 @@ for (const x of deals) for (const k of ['t:' + normTitle(x.title), ...[...codesO
 }
 const sameItems = d => [...new Map(['t:' + normTitle(d.title), ...[...codesOf(d.title)].map(c => 'c:' + c)]
   .flatMap(k => byItemKey.get(k) || []).filter(x => x.uid !== d.uid && x.price > 0 && sizesOf(x.title) === sizesOf(d.title)).map(x => [x.uid, x])).values()];
+// 단가 (11/4) — 제목의 용량·개수로 100g·kg·100ml·L·개당 가격을 낸다. 「이번 딜이 우리가 본 것 중 몇 번째로 싼가」를 보여 주려는 것.
+// 틀린 단가는 없느니만 못하니 애매하면 null: 용량이 두 가지(1kg 5kg 9kg 옵션), 개수 표기가 둘 이상, 1+1·증정·택1·모음.
+// 먹거리·생필품 분류만 계산한다 — 텀블러 1.18L·자석고리 7kg(버티는 무게) 같은 숫자는 단가가 아니다
+const UNIT_CATS = new Set(['라면', '생수·탄산수', '음료', '커피·차', '우유·두유·요거트', '과자·간식', '즉석밥·간편식', '고기·수산', '과일·채소',
+  '소스·조미료', '영양제·건강', '주류', '화장지·물티슈', '세제·섬유유연제', '샴푸·바디·헤어', '스킨케어·화장품', '구강용품']);
+const SIZE_RE = /(\d+(?:\.\d+)?)\s*(kg|g|ml|l)(?![a-z가-힣])/gi;
+const COUNT_RE = /(?:[x×*]\s*(\d+)\s*(?:개입|개|팩|입|봉|병|캔|포|박스|통|ea|구|롤|매|세트)?|(\d+)\s*(?:개입|개|팩|입|봉|병|캔|포|박스|통|ea|구|롤|세트))(?![가-힣a-z])/gi;
+const unitOf = d => {
+  const t = String(d.title || '').replace(/\[[^\]]*\]/g, ' ');
+  if (!(d.price > 0) || !catOf(d).some(c => UNIT_CATS.has(c)) || /\+|증정|택\s*\d|택일|옵션|골라|모음|외\s|~|\d\s*\/\s*\d/.test(t)) return null;
+  // 240정·60캡슐(알약 수)은 단위로 안 친다(커피 캡슐 21개와 섞였다). 제목에 가격(23,860원)이 박힌 건 딜 가격과 어긋난 적이 있다(세타필 2개/1개 같은 값)
+  if (/\d\s*(정|캡슐|알|타블렛)(?![가-힣])|\d원/.test(t)) return null;
+  const sizes = [...t.matchAll(SIZE_RE)].map(m => { const n = +m[1], u = m[2].toLowerCase(); return { q: /k|^l$/.test(u) ? n * 1000 : n, b: /g/.test(u) ? 'g' : 'ml' }; });
+  if (new Set(sizes.map(s => s.b + s.q)).size > 1) return null;
+  const rest = t.replace(SIZE_RE, ' ');
+  const counts = [...rest.matchAll(COUNT_RE)].map(m => +(m[1] || m[2]));
+  // 못 읽은 「×2」가 남아 있으면 개수를 놓친 것이다 (6개입*2세트 → 6 으로만 셌다)
+  if (/[x×*]\s*\d/i.test(rest.replace(COUNT_RE, ' '))) return null;
+  if (counts.length > 1 || counts.some(c => !(c >= 1 && c <= 500))) return null;
+  const n = counts[0] || 1;
+  if (sizes.length) return sizes[0].q > 0 ? { base: sizes[0].b, total: sizes[0].q * n, per: d.price / (sizes[0].q * n) } : null;
+  return counts.length ? { base: '개', total: n, per: d.price / n } : null;
+};
+const UNITS = new Map(deals.map(d => [d.uid, unitOf(d)]));
+// 무리의 크기에 맞춰 kg·L 또는 100g·100ml 로 읽는다 (생수 2L×30 은 L당, 과자 30g×8 은 100g당)
+const unitScale = arr => {
+  const b = UNITS.get(arr[0].uid).base;
+  if (b === '개') return { label: '개당', k: 1 };
+  const tot = arr.map(d => UNITS.get(d.uid).total).sort((x, y) => x - y), mid = tot[tot.length >> 1];
+  return mid >= 1000 ? { label: b === 'g' ? 'kg당' : 'L당', k: 1000 } : { label: b === 'g' ? '100g당' : '100ml당', k: 100 };
+};
+const unitWon = (d, sc) => won(Math.round(UNITS.get(d.uid).per * sc.k));
+// 딜 하나의 비교 무리: 같은 품목 단어 + 같은 분류 + 같은 단위.
+// 무리가 여럿이면 품목 이름(분류 정의에 나오는 말 — 샴푸·소스·시리얼)을 브랜드·꾸밈말(퍼퓸·청정원)보다 먼저, 그다음 좁은 것.
+// 단가가 4배 넘게 벌어지면 서로 다른 물건이 섞인 것으로 보고 안 보여 준다 (퍼퓸: 샴푸 ↔ 바디스프레이 23배, 초콜릿: 과자 ↔ 프로틴 파우더)
+const TYPE_WORDS = new Set(CATS.flatMap(([, inc]) => inc.source.split('|').map(s => s.replace(/[^가-힣A-Za-z]/g, '')).filter(s => s.length >= 2)));
+const unitSpreadOk = arr => { const ps = arr.map(x => UNITS.get(x.uid).per); return Math.max(...ps) <= 4 * Math.min(...ps); };
+const unitGroup = d => {
+  const u = UNITS.get(d.uid); if (!u) return null;
+  const cats = catOf(d);
+  const cands = kwOf(d).map(w => ({ w, type: TYPE_WORDS.has(w), arr: byKw[w].filter(x => { const v = UNITS.get(x.uid); return v && v.base === u.base && catOf(x).some(c => cats.includes(c)); }) }))
+    .filter(c => c.arr.length >= 3 && unitSpreadOk(c.arr))
+    .sort((a, b) => (b.type - a.type) || (a.arr.length - b.arr.length));
+  const best = cands[0];
+  if (!best) return null;
+  const sorted = best.arr.slice().sort((a, b) => UNITS.get(a.uid).per - UNITS.get(b.uid).per);
+  return { w: best.w, arr: sorted, rank: sorted.indexOf(d) + 1, sc: unitScale(sorted) };
+};
+const unitTable = (arr, sc, me) => `<div class="tbl"><table><thead><tr><th>날짜</th><th>상품</th><th class="r">가격</th><th class="r">${sc.label}</th></tr></thead><tbody>
+${arr.map((x, i) => `<tr${x === me || (!me && i === 0) ? ' class="low"' : ''}><td>${dateShort(x.sentAt)}</td><td>${x === me ? `<b>${esc(x.title)}</b> (이번)` : `<a href="${dealUrl(x)}">${esc(x.title)}</a>`}</td><td class="r">${won(x.price)}</td><td class="r">${unitWon(x, sc)}</td></tr>`).join('')}
+</tbody></table></div>`;
+
 const about = (d, kws) => {
   const t = kst(d.sentAt);
   const parts = [`${esc(d.title)}${은는(d.title)} ${t.y}년 ${t.mo}월 ${t.d}일 ${t.h}:${t.mi}에 ${esc(d.mall)}에서 ${won(d.price)}에 올라온 딜입니다.`];
@@ -376,7 +428,19 @@ for (const d of deals) {
   const kws = kwOf(d);
   const related = [...new Map(kws.flatMap(w => byKw[w]).filter(x => x.uid !== d.uid).map(x => [x.uid, x])).values()].slice(0, 6);
   const sameMall = (byMall[d.mall] || []).filter(x => x.uid !== d.uid && !related.includes(x)).slice(0, 6);
-  const desc = `${dateKo(d.sentAt)} ${d.mall} ${won(d.price)}.` + (d.baseline ? ` 다른 곳 ${won(d.baseline)}보다 ${d.saving}% 낮은 가격으로 핫딜베스트가 고른 딜입니다.` : ' 핫딜베스트가 고른 딜입니다.');
+  const ug = unitGroup(d);
+  const desc = `${dateKo(d.sentAt)} ${d.mall} ${won(d.price)}` + (ug ? `(${ug.sc.label} ${unitWon(d, ug.sc)})` : '') + '.'
+    + (d.baseline ? ` 다른 곳 ${won(d.baseline)}보다 ${d.saving}% 낮은 가격으로 핫딜베스트가 고른 딜입니다.` : ' 핫딜베스트가 고른 딜입니다.');
+  // 단가로 줄 세우기 — 10줄까지, 이번 딜이 그 밖이면 마지막 줄에 붙인다
+  let unitSec = '';
+  if (ug) {
+    const top = ug.arr.slice(0, 10), rows = top.includes(d) ? top : [...top.slice(0, 9), d];
+    const lo = ug.arr[0];
+    unitSec = `<section class="about"><h2>${esc(ug.w)} 딜, ${ug.sc.label} 가격으로 비교</h2>
+<p style="line-height:1.85">핫딜베스트가 고른 ${esc(ug.w)} 딜 ${ug.arr.length}건을 ${ug.sc.label} 가격으로 줄 세우면 이번 딜은 <b>${ug.rank}번째</b>로 쌉니다 (${ug.sc.label} ${unitWon(d, ug.sc)}).`
+      + (ug.rank > 1 ? ` 가장 쌌던 건 ${dateShort(lo.sentAt)} ${esc(lo.mall)}의 ${ug.sc.label} ${unitWon(lo, ug.sc)}이었습니다.` : '') + `</p>
+${unitTable(rows, ug.sc, d)}<p class="note">용량·개수는 상품 이름에서 읽었습니다. 브랜드·구성이 달라 참고용이에요. 가격은 각 딜을 보낸 시점 기준입니다.</p></section>`;
+  }
   const cmp = d.baseline && d.price ? `<div class="cmp" aria-label="가격 비교">
 <div class="row us"><b>이 딜</b><span class="bar"><i style="width:${Math.max(6, Math.round(d.price / d.baseline * 100))}%"></i></span><span>${won(d.price)}</span></div>
 <div class="row"><span>다른 곳</span><span class="bar"><i style="width:100%"></i></span><span>${won(d.baseline)}</span></div>
@@ -391,6 +455,7 @@ ${cmp}
 <div class="stack">${buyLink(d)}</div>
 </div></div>
 <section class="about"><h2>이 딜에 대해</h2><p style="line-height:1.85">${about(d, kws)}</p></section>
+${unitSec}
 ${d.earlier && d.earlier.length ? `<h2>이 상품, 전에 보낸 가격</h2><div class="tbl"><table><thead><tr><th>보낸 시각</th><th class="r">가격</th><th class="r">다른 곳</th></tr></thead><tbody>
 ${[Object.assign({ now: 1 }, d), ...d.earlier].map((e, i, arr) => `<tr${+e.price > 0 && +e.price === Math.min(...arr.map(x => +x.price || Infinity)) ? ' class="low"' : ''}><td>${dateTime(e.sentAt)}${e.now ? ' (이번)' : e.web ? ' · 사이트' : ''}</td><td class="r">${won(e.price)}</td><td class="r">${won(e.baseline)}</td></tr>`).join('')}
 </tbody></table></div><p class="note">같은 상품도 보낼 때마다 가격이 달라요. 지금 가격은 판매처에서 확인하세요.</p>` : ''}
@@ -409,15 +474,35 @@ ${sameMall.length ? `<h2>${esc(d.mall)} 최근 딜</h2>${grid(sameMall)}` : ''}`
 for (const w of KW) {
   const arr = byKw[w];
   const min = arr.reduce((a, b) => (b.price > 0 && b.price < a.price ? b : a), arr[0]);
+  // 단가 순위 (11/4) — 가장 많은 단위(g·ml·개) 쪽만, 3건 이상일 때
+  const bases = {};
+  for (const d of arr) { const u = UNITS.get(d.uid); if (u) (bases[u.base] = bases[u.base] || []).push(d); }
+  const ub = Object.values(bases).sort((a, b) => b.length - a.length)[0] || [];
+  const uarr = ub.length >= 3 && unitSpreadOk(ub) ? ub.slice().sort((a, b) => UNITS.get(a.uid).per - UNITS.get(b.uid).per) : [];
+  const usc = uarr.length ? unitScale(uarr) : null;
+  // 월별 — 딜이 쌓일수록 길어지는 기록. 최근 달부터
+  const byMonth = {};
+  for (const d of arr) { const t = kst(d.sentAt); const k = `${t.y}-${String(t.mo).padStart(2, '0')}`; (byMonth[k] = byMonth[k] || []).push(d); }
+  const months = Object.keys(byMonth).sort().reverse();
+  const monthTbl = months.length >= 2 ? `<h2>${esc(w)} 월별 기록</h2><div class="tbl"><table><thead><tr><th>달</th><th class="r">딜</th><th class="r">가장 낮은 가격</th>${usc ? `<th class="r">가장 낮은 ${usc.label}</th>` : ''}</tr></thead><tbody>
+${months.map(k => { const a = byMonth[k], lo = a.reduce((x, y) => (y.price > 0 && y.price < x.price ? y : x), a[0]);
+    const ua = usc ? a.filter(x => uarr.includes(x)).sort((x, y) => UNITS.get(x.uid).per - UNITS.get(y.uid).per) : [];
+    return `<tr><td>${+k.slice(0, 4)}년 ${+k.slice(5)}월</td><td class="r">${a.length}건</td><td class="r"><a href="${dealUrl(lo)}">${won(lo.price)}</a></td>${usc ? `<td class="r">${ua.length ? unitWon(ua[0], usc) : '–'}</td>` : ''}</tr>`; }).join('')}
+</tbody></table></div>` : '';
+  const unitBox = usc ? `<h2>${usc.label} 가격 순위 <small>${uarr.length}건</small></h2>
+<p>상품마다 용량·개수가 달라 ${usc.label} 가격으로 바꿔 줄 세웠습니다. ${usc.label} 가장 쌌던 건 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)}, ${esc(uarr[0].mall)})이에요.</p>
+${unitTable(uarr.slice(0, 15), usc, null)}<p class="note">용량·개수는 상품 이름에서 읽었습니다. 이름만으로 단가를 알 수 없는 딜은 빠져 있어요.</p>` : '';
   const body = `<h1>${esc(w)} 핫딜·가격 기록</h1>
-<p class="lead">핫딜베스트가 고른 <b>${esc(w)}</b> 딜 ${arr.length}건입니다. 이 중 가장 낮았던 가격은 <span class="hl">${won(min.price)}</span>(${dateTime(min.sentAt)}, ${esc(min.mall)})이에요. 상품 구성이 서로 달라 단순 비교는 어렵습니다.</p>
+<p class="lead">핫딜베스트가 고른 <b>${esc(w)}</b> 딜 ${arr.length}건입니다. 이 중 가장 낮았던 가격은 <span class="hl">${won(min.price)}</span>(${dateTime(min.sentAt)}, ${esc(min.mall)})이에요.${usc ? ` 용량이 달라 ${usc.label} 가격으로 보면 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)})이 가장 쌌습니다.` : ' 상품 구성이 서로 달라 단순 비교는 어렵습니다.'}</p>
 ${spark(arr)}
+${unitBox}
+${monthTbl}
 <h2>날짜별 가격 <small>${arr.length}건</small></h2><div class="tbl"><table><thead><tr><th>날짜</th><th>상품</th><th class="r">가격</th></tr></thead><tbody>
 ${arr.map(d => `<tr${d === min ? ' class="low"' : ''}><td>${dateTime(d.sentAt)}</td><td><a href="${dealUrl(d)}">${esc(d.title)}</a></td><td class="r">${won(d.price)}</td></tr>`).join('')}
 </tbody></table></div>
 ${join}
 <h2>${esc(w)} 딜 모아 보기</h2>${grid(arr)}`;
-  write(`k/${w}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${w} 핫딜 기록`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) }, title: `${w} 핫딜·최저가 기록 - ${SITE}`, desc: `핫딜베스트가 고른 ${w} 핫딜 ${arr.length}건과 날짜별 가격. 가장 낮았던 가격 ${won(min.price)}.`,
+  write(`k/${w}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${w} 핫딜 기록`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) }, title: `${w} 핫딜·최저가 기록 - ${SITE}`, desc: `핫딜베스트가 고른 ${w} 핫딜 ${arr.length}건과 날짜별 가격. 가장 낮았던 가격 ${won(min.price)}.` + (usc ? ` ${usc.label} 가장 쌌던 가격 ${unitWon(uarr[0], usc)}.` : ''),
     canon: url('k', w), body, img: min.image, crumbs: [['홈', '/'], ['품목별', '/k/'], [w, url('k', w)]] }));
   add(url('k', w), kst(arr[0].sentAt).ymd);
 }
