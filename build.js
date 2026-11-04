@@ -636,7 +636,7 @@ ${kws.length ? `<h2>같은 품목 가격 기록 보기</h2><ul class="chips">${k
 ${related.length ? `<h2>이런 딜은 어때요?</h2>${grid(related)}` : ''}
 ${sameMall.length ? `<h2>${esc(d.mall)}에서 최근에 뜬 딜</h2>${grid(sameMall)}` : ''}
 <script>(function(){var e=document.querySelector('.ago');if(!e)return;var m=(Date.now()-Date.parse(e.getAttribute('data-t')))/6e4;if(!(m>=0))return;
-e.textContent=' · '+(m<60?'방금 전':m<1440?Math.floor(m/60)+'시간 전':Math.floor(m/1440)+'일 전');})();</script>`;
+e.textContent=' · '+(m<5?'방금 전':m<60?Math.floor(m)+'분 전':m<1440?Math.floor(m/60)+'시간 전':Math.floor(m/1440)+'일 전');})();</script>`;
   // 그래프가 둘 다 있을 때만 ①② 번호를 단다 (하나뿐인데 ① 이 붙어 있었다)
   const bodyN = body.includes('② 핫딜베스트가 고른') ? body.replace('>이 상품의 1년 시세</h3>', '>① 이 상품의 1년 시세</h3>') : body;
   write(decodeURIComponent(dealUrl(d)).slice(1) + 'index.html', page({ title: `${d.title} ${won(d.price)} 핫딜 - ${SITE}`, desc, canon: dealUrl(d), body: bodyN, img: d.image,
