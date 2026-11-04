@@ -300,8 +300,8 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria 
   const X = x => 3 + 94 * x, Y = v => 8 + 82 * (1 - (v - lo) / (hi - lo));   // 위 8% · 아래 10% 여백
   const line = pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(p.v).toFixed(2)).join(' ');
   const iLow = pts.reduce((b, p, i) => (p.v < pts[b].v ? i : b), 0);
-  // 세로축 값은 짧게 — 10만 넘으면 「30만」, 1만 넘으면 「2.5만」, 그 아래는 「7,500」
-  const fmt = n => n >= 1e5 ? Math.round(n / 1e4) + '만' : n >= 1e4 ? +(n / 1e4).toFixed(1) + '만' : Math.round(n).toLocaleString('ko-KR');
+  // 세로축 값은 짧게 — 「30만」·「2.5만」·「1.25만」·「7,500」. 반올림하면 눈금이 틀린 값이 된다(1.25만 → 1.3만, 1.75만 → 1.8만 으로 나갔다)
+  const fmt = n => n >= 1e5 ? +(n / 1e4).toFixed(1) + '만' : n >= 1e4 ? +(n / 1e4).toFixed(2) + '만' : Math.round(n).toLocaleString('ko-KR');
   const lab = (i, text, cls) => { const x = X(pts[i].x), y = Y(pts[i].v); const side = x < 14 ? ' l' : x > 86 ? ' r' : '';
     return `<span class="lc-lab ${cls}${side}${y < 26 && !/below/.test(cls) ? ' below' : ''}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">${text}</span>`; };
   const dots = pts.length <= 16 ? pts.map((p, i) => i === iLow || i === me ? '' : `<i class="lc-dot" style="left:${X(p.x).toFixed(2)}%;top:${Y(p.v).toFixed(2)}%"></i>`).join('') : '';
