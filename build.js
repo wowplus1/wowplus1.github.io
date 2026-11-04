@@ -350,7 +350,11 @@ ${ref > 0 && refLabel ? `<span class="lc-lab reflab" style="left:97%;top:${Y(ref
 const spark = (arr, usc, uarr, me) => {
   const unit = !!(usc && uarr && uarr.length >= 3);
   const val = d => (unit ? Math.round(UNITS.get(d.uid).per * usc.k) : d.price);
-  const ds = (unit ? uarr : arr).filter(d => d.price > 0).slice().sort((a, b) => a.sentAt.localeCompare(b.sentAt));
+  // 같은 날 뜬 딜이 여럿이면 그날 가장 싼 하나만 — 하루 안에서 선이 세로로 튀지 않게 (이번 딜은 늘 남긴다)
+  const byDay = new Map();
+  for (const d of (unit ? uarr : arr).filter(d => d.price > 0)) { const k = kst(d.sentAt).ymd, o = byDay.get(k);
+    if (!o || d === me || (o !== me && val(d) < val(o))) byDay.set(k, d); }
+  const ds = [...byDay.values()].sort((a, b) => a.sentAt.localeCompare(b.sentAt));
   if (ds.length < 2) return '';
   const ts = ds.map(d => Date.parse(d.sentAt)), t0 = ts[0], t1 = ts[ts.length - 1];
   const pts = ds.map((d, i) => ({ x: t1 > t0 ? (ts[i] - t0) / (t1 - t0) : i / (ds.length - 1), v: val(d) }));
@@ -589,7 +593,9 @@ const freqBox = d => {
   const ug = unitGroup(d);
   const gw = kwOf(d).filter(w => byKw[w].length >= 3).sort((a, b) => (TYPE_WORDS.has(b) - TYPE_WORDS.has(a)) || (byKw[a].length - byKw[b].length))[0];
   const gp = gw ? byKw[gw].map(x => x.price).filter(p => p > 0) : [];
-  const chart = ug ? spark(ug.arr, ug.sc, ug.arr, d) : gw && TYPE_WORDS.has(gw) && Math.max(...gp) <= 3 * Math.min(...gp) ? spark(byKw[gw], null, null, d) : '';
+  // ② 「핫딜베스트가 고른 ○○ 딜」 선 그래프는 뺐다 (11/4) — 서로 다른 상품을 날짜순으로 이으면 오르내림처럼 보이고,
+  // 같은 날 뜬 딜끼리 세로로 튀었다(농심 장칼국수: 10/21 세 개 → 10/25). 같은 품목끼리의 비교는 위 「같은 ○○ 딜이랑 비교하면?」 순위표가 맡는다
+  const chart = '';
   const cw = ug ? ug.w : gw, cn = ug ? ug.arr.length : gw ? byKw[gw].length : 0;
   return `<section class="about"><h2>${head}</h2><p>${text}</p><p>이번 걸 놓쳤다면, 카톡방에서 다음 딜을 먼저 받아 보세요.</p>${chart ? `<h3 style="margin:14px 0 2px;font-size:15px">${trendChart(d) ? '② ' : ''}핫딜베스트가 고른 ${esc(cw)} 딜 ${cn}개${ug ? `, ${ug.sc.label} 가격` : ''}</h3><p class="note" style="margin:0 0 8px">이 상품만이 아니라, 이름에 「${esc(cw)}」 단어가 들어간 딜을 날짜순으로 이었어요${ug ? `. 용량이 제각각이라 ${ug.sc.label} 가격으로 바꿨어요` : ''}.</p>${chart}` : ''}</section>`;
 };
