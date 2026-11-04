@@ -207,7 +207,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .lc-plot{position:relative;height:160px;margin-left:46px}
 .lc-plot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;color:var(--c)}
 .lc-grid{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
-.lc-area{fill:currentColor;fill-opacity:.1}.lc-band{fill:var(--brand);fill-opacity:.13}
+.lc-area{fill:currentColor;fill-opacity:.1}.lc-band{fill:var(--brand);fill-opacity:.13}.lc-tail{fill:none;stroke:var(--brand);stroke-width:2.5;stroke-dasharray:5 4;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .lc-line{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .lc-ref{stroke:var(--brand);stroke-opacity:.8;stroke-width:1;vector-effect:non-scaling-stroke}
 .lc-y{position:absolute;left:-46px;width:40px;text-align:right;transform:translateY(-50%);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
@@ -293,7 +293,8 @@ const buyLink = d => {
 // 눈금 간격 — 1·2·2.5·5 의 10배수 중, 칸이 5개 이하가 되는 가장 촘촘한 것 (필립스 18만~51만: 20만 간격이면 0부터 그려져 선이 납작해졌다)
 const niceStep = (lo, hi) => { const c = []; for (let e = Math.floor(Math.log10(Math.max(1, hi - lo))) - 2; c.length < 40; e++) for (const m of [1, 2, 2.5, 5]) c.push(m * Math.pow(10, e));
   return c.find(st => Math.ceil(hi / st) - Math.floor(lo / st) <= 5) || c[c.length - 1]; };
-const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria, band }) => {
+const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria, band, tail }) => {
+  // tail: 마지막 점이 이번 딜이다 — 그 앞까지는 회색(시세), 마지막 한 칸만 빨간 선으로 내려온다. 「최저」 표시는 시세 쪽에서만 고른다
   // band: 면을 바닥이 아니라 기준선(ref)까지만 칠한다 — 시세와 이번 딜 사이의 차이가 곧 「싼 만큼」이다. 시세가 이번 딜보다 낮았던 달(필립스 10월)은 칠하지 않는다
   // pts: [{x: 0~1, v}] · me: pts 안의 이번 딜 번호 · ref: 가로 기준선 값(① 의 이번 딜 가격)
   const vs = pts.map(p => p.v).concat(ref > 0 ? [ref] : []);
@@ -303,8 +304,10 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria,
   lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step; if (hi === lo) hi = lo + step;
   const ticks = []; for (let t = lo; t <= hi + step / 2; t += step) ticks.push(t);
   const X = x => 3 + 94 * x, Y = v => 8 + 82 * (1 - (v - lo) / (hi - lo));   // 위 8% · 아래 10% 여백
-  const line = pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(p.v).toFixed(2)).join(' ');
-  const iLow = pts.reduce((b, p, i) => (p.v < pts[b].v ? i : b), 0);
+  const body = tail ? pts.slice(0, -1) : pts;
+  const line = body.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(p.v).toFixed(2)).join(' ');
+  const iLow = body.reduce((b, p, i) => (p.v < body[b].v ? i : b), 0);
+  const tailPath = tail ? `<path d="M${X(pts[pts.length - 2].x).toFixed(2)} ${Y(pts[pts.length - 2].v).toFixed(2)} L ${X(pts[pts.length - 1].x).toFixed(2)} ${Y(pts[pts.length - 1].v).toFixed(2)}" class="lc-tail"/>` : '';
   // 세로축 값은 짧게 — 「30만」·「2.5만」·「1.25만」·「7,500」. 반올림하면 눈금이 틀린 값이 된다(1.25만 → 1.3만, 1.75만 → 1.8만 으로 나갔다)
   const fmt = n => n >= 1e5 ? +(n / 1e4).toFixed(1) + '만' : n >= 1e4 ? +(n / 1e4).toFixed(2) + '만' : Math.round(n).toLocaleString('ko-KR');
   // 숫자 표시 자리 고르기 (11/4) — 점 위·아래 × 가운데·왼쪽·오른쪽 여섯 자리 중, 다른 점·선·먼저 놓인 표시를 가장 적게 가리는 곳.
@@ -331,9 +334,9 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria,
   return `<div class="lc" style="--c:${color}" role="img" aria-label="${esc(aria)}"><div class="lc-plot">
 <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
 ${ticks.map(t => `<line x1="0" x2="100" y1="${Y(t).toFixed(2)}" y2="${Y(t).toFixed(2)}" class="lc-grid"/>`).join('')}
-${band && ref > 0 ? `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(Math.max(p.v, ref)).toFixed(2)).join(' ')} L ${X(pts[pts.length - 1].x).toFixed(2)} ${Y(ref).toFixed(2)} L ${X(pts[0].x).toFixed(2)} ${Y(ref).toFixed(2)} Z" class="lc-band"/>` : `<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} 100 L ${X(pts[0].x).toFixed(2)} 100 Z" class="lc-area"/>`}
+${!tail && band && ref > 0 ? `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(Math.max(p.v, ref)).toFixed(2)).join(' ')} L ${X(pts[pts.length - 1].x).toFixed(2)} ${Y(ref).toFixed(2)} L ${X(pts[0].x).toFixed(2)} ${Y(ref).toFixed(2)} Z" class="lc-band"/>` : `<path d="${line} L ${X(body[body.length - 1].x).toFixed(2)} 100 L ${X(body[0].x).toFixed(2)} 100 Z" class="lc-area"/>`}
 ${ref > 0 ? `<line x1="0" x2="100" y1="${Y(ref).toFixed(2)}" y2="${Y(ref).toFixed(2)}" class="lc-ref"/>` : ''}
-<path d="${line}" class="lc-line"/></svg>
+<path d="${line}" class="lc-line"/>${tailPath}</svg>
 ${ticks.map(t => `<span class="lc-y" style="top:${Y(t).toFixed(2)}%">${fmt(t)}</span>`).join('')}
 ${dots}<i class="lc-dot low" style="left:${X(pts[iLow].x).toFixed(2)}%;top:${Y(pts[iLow].v).toFixed(2)}%"></i>
 ${me != null && me !== iLow ? `<i class="lc-dot me" style="left:${X(pts[me].x).toFixed(2)}%;top:${Y(pts[me].v).toFixed(2)}%"></i>` : ''}
@@ -501,10 +504,10 @@ const trendChart = d => {
     : p < usual ? `평소 시세(${won(usual)} 안팎)보다 <b>${won(usual - p)} 싸요</b>. 다만 ${mLabel(low.m)}엔 ${won(low.p)}까지 내려간 적이 있어요.`
     : `이번 가격은 평소 시세(${won(usual)} 안팎)와 비슷하거나 조금 높아요. 제일 쌌던 건 ${mLabel(low.m)}의 ${won(low.p)}이었어요.`;
   return `<h3 style="margin:18px 0 6px;font-size:15px">이 상품의 1년 시세</h3><p class="trend-head">${head}</p>`
-    + lineChart({ pts: pts.map((x, i) => ({ x: i / (pts.length - 1), v: x.p })), color: 'var(--mid)', band: p < usual, aria: `월별 최저가 그래프, 평소 ${won(usual)} 안팎, 이번 딜 ${won(p)}`,
-      lowLabel: `${mLabel(low.m)} 최저 ${won(low.p)}`, ref: p, refLabel: `이번 딜 ${won(p)}`,
-      xs: [mLabel(pts[0].m), mLabel(pts[Math.floor((pts.length - 1) / 2)].m), mLabel(pts[pts.length - 1].m)] })
-    + `<p class="note">회색 선은 같은 규격 상품이 달마다 가장 싸게 팔렸던 값, 빨간 선은 이번 딜 가격이에요.${p < usual ? ' 그 사이 빨간 칸이 이번 딜이 더 싼 만큼이에요.' : ''}${pts.length < raw.length ? ' 구성이 달라 보이는 값은 뺐어요.' : ''}</p>`;
+    + lineChart({ pts: [...pts.map((x, i) => ({ x: i / pts.length, v: x.p })), { x: 1, v: p }], color: 'var(--mid)', tail: true, aria: `월별 최저가 그래프, 평소 ${won(usual)} 안팎, 이번 딜 ${won(p)}`,
+      lowLabel: `${mLabel(low.m)} 최저 ${won(low.p)}`, me: pts.length, meLabel: `이번 딜 ${won(p)}`,
+      xs: [mLabel(pts[0].m), mLabel(pts[Math.floor((pts.length - 1) / 2)].m), '이번 딜'] })
+    + `<p class="note">회색 선은 같은 규격 상품이 달마다 가장 싸게 팔렸던 값이고, 맨 끝 빨간 점선이 이번 딜 가격이에요.${pts.length < raw.length ? ' 구성이 달라 보이는 값은 뺐어요.' : ''}</p>`;
 };
 // 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
 const compsTable = d => {
