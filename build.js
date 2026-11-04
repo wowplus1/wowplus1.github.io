@@ -199,6 +199,22 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .join h3{margin:0;font-size:19px;letter-spacing:-.035em}.join p{margin:0 0 8px;color:color-mix(in srgb,var(--paper) 72%,transparent);font-size:14px}
 .join .assure{color:color-mix(in srgb,var(--paper) 70%,transparent)}
 /* 표·차트 */
+.lc{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:16px 16px 10px;margin:0 0 6px}
+.lc-plot{position:relative;height:160px;margin-left:46px}
+.lc-plot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;color:var(--c)}
+.lc-grid{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.lc-area{fill:currentColor;fill-opacity:.1}
+.lc-line{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.lc-ref{stroke:var(--ink);stroke-opacity:.45;stroke-width:1;vector-effect:non-scaling-stroke}
+.lc-y{position:absolute;left:-46px;width:40px;text-align:right;transform:translateY(-50%);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.lc-dot{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px var(--paper);opacity:.6}
+.lc-dot.low{width:10px;height:10px;margin:-5px 0 0 -5px;opacity:1}
+.lc-dot.me{width:12px;height:12px;margin:-6px 0 0 -6px;opacity:1;background:var(--paper);box-shadow:0 0 0 2.5px var(--ink),0 0 0 5px var(--paper)}
+.lc-lab{position:absolute;transform:translate(-50%,calc(-100% - 9px));font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;background:var(--paper);padding:0 3px;border-radius:4px;line-height:1.5}
+.lc-lab.below{transform:translate(-50%,9px)}.lc-lab.l{transform:translate(-4px,calc(-100% - 9px))}.lc-lab.l.below{transform:translate(-4px,9px)}
+.lc-lab.r{transform:translate(calc(-100% + 4px),calc(-100% - 9px))}.lc-lab.r.below{transform:translate(calc(-100% + 4px),9px)}
+.lc-lab.lowlab{color:var(--mid);font-weight:500}.lc-lab.reflab{color:var(--mid);font-weight:500;transform:translate(-100%,calc(-100% - 3px))}
+.lc-x{display:flex;justify-content:space-between;margin:6px 0 0 46px;font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}
 .spark{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:14px 14px 8px;margin:0 0 6px}
 .spark svg{width:100%;height:120px;display:block}.spark .sparktip{margin:6px 0 2px}.spark .lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
 .tbl{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
@@ -267,29 +283,56 @@ const buyLink = d => {
   return `<a class="btn" href="${esc(href)}" target="_blank" rel="nofollow sponsored noopener">${label}</a><p class="note">${esc(disclosureFor(d.mall))}</p>`;
 };
 
-// 가격 기록 선 그래프 (11/4 고침 — 사장님 요청 셋)
-//  1) 가로축은 실제 날짜 간격. 예전엔 보낸 순서대로 같은 간격이라 몰린 날·빈 주가 똑같이 보였다
-//  2) 단가를 읽을 수 있는 품목(unit 무리 3건 이상)은 단가로 그린다 — 용량이 다른 상품을 총액으로 이으면 오르내림이 거짓말이 된다
-//  (점을 누르면 상품명이 뜨던 줄은 11/4 사장님 요청으로 뺐다)
-// 점은 길이 0 선의 둥근 끝으로 찍는다 — preserveAspectRatio="none" 이라 원(circle)은 폰에서 찌그러진다
+// 선 그래프 공용 (11/4 「단조롭다」 → 다시 그림). 상세 ①②·품목 페이지가 같이 쓴다.
+// 선·면·눈금선은 SVG(가로세로 비율 무시), 점·글자는 HTML 로 얹는다 — 폰에서도 점이 동그랗고 글자 크기가 그대로다.
+// 꾸밈은 빼고: 선 2px · 면은 같은 색 10% · 눈금선 1px 실선 · 숫자는 가장 낮은 점과 이번 딜에만 (모든 점에 숫자를 달지 않는다)
+const niceStep = span => { const raw = span / 2, p = Math.pow(10, Math.floor(Math.log10(raw || 1))); return [1, 2, 2.5, 5, 10].map(m => m * p).find(x => x >= raw) || raw; };
+const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria }) => {
+  // pts: [{x: 0~1, v}] · me: pts 안의 이번 딜 번호 · ref: 가로 기준선 값(① 의 이번 딜 가격)
+  const vs = pts.map(p => p.v).concat(ref > 0 ? [ref] : []);
+  let lo = Math.min(...vs), hi = Math.max(...vs);
+  const step = niceStep(hi - lo || hi * 0.1 || 1);
+  lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step; if (hi === lo) hi = lo + step;
+  const ticks = []; for (let t = lo; t <= hi + step / 2; t += step) ticks.push(t);
+  const X = x => 3 + 94 * x, Y = v => 8 + 82 * (1 - (v - lo) / (hi - lo));   // 위 8% · 아래 10% 여백
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(p.v).toFixed(2)).join(' ');
+  const iLow = pts.reduce((b, p, i) => (p.v < pts[b].v ? i : b), 0);
+  const fmt = n => Math.round(n).toLocaleString('ko-KR');
+  const lab = (i, text, cls) => { const x = X(pts[i].x), y = Y(pts[i].v); const side = x < 14 ? ' l' : x > 86 ? ' r' : '';
+    return `<span class="lc-lab ${cls}${side}${y < 26 && !/below/.test(cls) ? ' below' : ''}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">${text}</span>`; };
+  const dots = pts.length <= 16 ? pts.map((p, i) => i === iLow || i === me ? '' : `<i class="lc-dot" style="left:${X(p.x).toFixed(2)}%;top:${Y(p.v).toFixed(2)}%"></i>`).join('') : '';
+  const close = me != null && me !== iLow && Math.abs(X(pts[me].x) - X(pts[iLow].x)) < 16;
+  return `<div class="lc" style="--c:${color}" role="img" aria-label="${esc(aria)}"><div class="lc-plot">
+<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+${ticks.map(t => `<line x1="0" x2="100" y1="${Y(t).toFixed(2)}" y2="${Y(t).toFixed(2)}" class="lc-grid"/>`).join('')}
+<path d="${line} L ${X(pts[pts.length - 1].x).toFixed(2)} 100 L ${X(pts[0].x).toFixed(2)} 100 Z" class="lc-area"/>
+${ref > 0 ? `<line x1="0" x2="100" y1="${Y(ref).toFixed(2)}" y2="${Y(ref).toFixed(2)}" class="lc-ref"/>` : ''}
+<path d="${line}" class="lc-line"/></svg>
+${ticks.map(t => `<span class="lc-y" style="top:${Y(t).toFixed(2)}%">${fmt(t)}</span>`).join('')}
+${dots}<i class="lc-dot low" style="left:${X(pts[iLow].x).toFixed(2)}%;top:${Y(pts[iLow].v).toFixed(2)}%"></i>
+${me != null && me !== iLow ? `<i class="lc-dot me" style="left:${X(pts[me].x).toFixed(2)}%;top:${Y(pts[me].v).toFixed(2)}%"></i>` : ''}
+${lowLabel ? lab(iLow, lowLabel, close && Y(pts[iLow].v) > Y(pts[me].v) ? 'lowlab below' : 'lowlab') : ''}
+${me != null && meLabel ? lab(me, meLabel, close && Y(pts[me].v) >= Y(pts[iLow].v) ? 'below' : '') : ''}
+${ref > 0 && refLabel ? `<span class="lc-lab reflab" style="left:97%;top:${Y(ref).toFixed(2)}%">${refLabel}</span>` : ''}
+</div><div class="lc-x">${xs.map(x => `<span>${x}</span>`).join('')}</div></div>`;
+};
+// 가격 기록 선 그래프 — 가로축은 실제 날짜 간격, 단가 무리 3건 이상이면 단가로 (용량 다른 상품을 총액으로 이으면 오르내림이 거짓말이 된다).
+// 점을 누르면 상품명이 뜨던 줄은 11/4 사장님 요청으로 뺐다 — 다시 넣지 않는다
 const spark = (arr, usc, uarr, me) => {
   const unit = !!(usc && uarr && uarr.length >= 3);
   const val = d => (unit ? Math.round(UNITS.get(d.uid).per * usc.k) : d.price);
-  const pts = (unit ? uarr : arr).filter(d => d.price > 0).slice().sort((a, b) => a.sentAt.localeCompare(b.sentAt));
-  if (pts.length < 2) return '';
-  const W = 600, H = 120, P = 12, vs = pts.map(val), lo = Math.min(...vs), hi = Math.max(...vs), span = hi - lo || 1;
-  const ts = pts.map(d => Date.parse(d.sentAt)), t0 = ts[0], t1 = ts[ts.length - 1];
-  const X = i => P + (W - 2 * P) * (t1 > t0 ? (ts[i] - t0) / (t1 - t0) : i / (pts.length - 1));
-  const Y = v => P + (H - 2 * P) * (1 - (v - lo) / span);
-  const xy = pts.map((d, i) => [X(i), Y(vs[i])]);
-  const line = xy.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
-  const iLow = vs.indexOf(lo), what = unit ? usc.label + ' 가격' : '가격';
-  return `<div class="spark" role="img" aria-label="${what} 기록 그래프, 가장 낮은 ${what} ${won(lo)}"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-<path d="${line} L ${xy[xy.length - 1][0].toFixed(1)} ${H} L ${xy[0][0].toFixed(1)} ${H} Z" fill="var(--brand-soft)"/><path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
-${xy.map((p, i) => `<g><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="${i === iLow ? 'var(--brand)' : 'var(--paper)'}" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--brand)" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" stroke-opacity="${i === iLow ? 1 : .35}" vector-effect="non-scaling-stroke"/>${pts[i] === me ? `<path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--ink)" stroke-width="13" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--paper)" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : ''}</g>`).join('')}</svg>
-<div class="lbl"><span>${dateShort(pts[0].sentAt)}</span><span>${unit ? usc.label + ' · ' : ''}가장 낮음 ${won(lo)} · 가장 높음 ${won(hi)}</span><span>${dateShort(pts[pts.length - 1].sentAt)}</span></div>
-<p class="note sparktip">${me && pts.includes(me) ? `검은 테 점이 이번 딜(${won(val(me))}), 빨간 점이 가장 낮았던 때예요. ` : ''}${unit && !me ? `용량이 달라 ${usc.label} 가격으로 그렸어요.` : ''}</p></div>
-`;
+  const ds = (unit ? uarr : arr).filter(d => d.price > 0).slice().sort((a, b) => a.sentAt.localeCompare(b.sentAt));
+  if (ds.length < 2) return '';
+  const ts = ds.map(d => Date.parse(d.sentAt)), t0 = ts[0], t1 = ts[ts.length - 1];
+  const pts = ds.map((d, i) => ({ x: t1 > t0 ? (ts[i] - t0) / (t1 - t0) : i / (ds.length - 1), v: val(d) }));
+  const iMe = me ? ds.indexOf(me) : -1, low = Math.min(...pts.map(p => p.v));
+  const mid = ds[Math.floor((ds.length - 1) / 2)];
+  const what = unit ? usc.label + ' ' : '';
+  return lineChart({ pts, color: 'var(--brand)', aria: `${what}가격 기록 그래프, 가장 낮은 값 ${won(low)}`,
+    lowLabel: `최저 ${what}${won(low)}`, me: iMe >= 0 ? iMe : null, meLabel: iMe >= 0 && pts[iMe].v !== low ? `이번 ${won(pts[iMe].v)}` : '',
+    xs: [dateShort(ds[0].sentAt), ds.length > 2 && t1 - t0 > 20 * 864e5 ? dateShort(mid.sentAt) : '', dateShort(ds[ds.length - 1].sentAt)] })
+    + (iMe >= 0 && pts[iMe].v === low ? '<p class="note">이번 딜이 이 기록에서 가장 낮은 값이에요.</p>' : '')
+    + (unit && !me ? `<p class="note">용량이 달라 ${usc.label} 가격으로 그렸어요.</p>` : '');
 };
 
 // 홈의 「최근 보낸 딜」 을 실시간으로 채운다 (lp/02 와 같은 파이어베이스 경로).
@@ -422,19 +465,13 @@ const trendChart = d => {
   const sorted = raw.map(x => x.p).sort((a, b) => a - b), med = sorted[sorted.length >> 1];
   const pts = raw.filter(x => x.p >= med / 3 && x.p <= med * 3);
   if (pts.length < 4 || new Set(pts.map(x => x.p)).size < 2) return '';
-  const W = 600, H = 150, P = 14, ps = pts.map(x => x.p).concat(d.price > 0 ? [d.price] : []);
-  const lo = Math.min(...ps), hi = Math.max(...ps), span = hi - lo || 1;
-  const X = i => P + (W - 2 * P) * i / (pts.length - 1), Y = v => P + (H - 2 * P) * (1 - (v - lo) / span);
-  const line = pts.map((x, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(x.p).toFixed(1)).join(' ');
   const low = pts.reduce((a, b) => (b.p < a.p ? b : a));
   const mLabel = m => `${+m.slice(3)}월`;
-  const ours = d.price > 0 ? `<line x1="${P}" x2="${W - P}" y1="${Y(d.price).toFixed(1)}" y2="${Y(d.price).toFixed(1)}" stroke="var(--brand)" stroke-dasharray="6 5" stroke-width="1.5" vector-effect="non-scaling-stroke"/>` : '';
-  return `<h3 style="margin:16px 0 2px;font-size:15px">① 이 상품의 1년 시세</h3><p class="note" style="margin:0 0 8px">같은 규격 상품이 시장에서 달마다 가장 싸게 팔린 값을 이었어요. 점선은 이번 딜 가격 ${won(d.price)}.</p>
-<div class="spark" role="img" aria-label="월별 최저가 그래프, 가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-${ours}<path d="${line}" fill="none" stroke="var(--dim)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
-${pts.map((x, i) => `<circle cx="${X(i)}" cy="${Y(x.p)}" r="${x === low ? 5 : 3}" fill="${x === low ? 'var(--ink)' : 'var(--paper)'}" stroke="var(--dim)" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join('')}</svg>
-<div class="lbl"><span>${mLabel(pts[0].m)}</span><span>가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}</span><span>${mLabel(pts[pts.length - 1].m)}</span></div></div>
-<p class="note">${pts.length < raw.length ? '구성이 다른 것으로 보이는 값은 뺐습니다. ' : ''}달마다 가장 낮았던 한 순간의 값이라, 그 값에 늘 살 수 있었던 건 아니에요.</p>`;
+  return `<h3 style="margin:16px 0 2px;font-size:15px">① 이 상품의 1년 시세</h3><p class="note" style="margin:0 0 8px">같은 규격 상품이 시장에서 달마다 가장 싸게 팔린 값을 이었어요. 가로선은 이번 딜 가격이에요.</p>`
+    + lineChart({ pts: pts.map((x, i) => ({ x: i / (pts.length - 1), v: x.p })), color: 'var(--mid)', aria: `월별 최저가 그래프, 가장 낮았던 달 ${mLabel(low.m)} ${won(low.p)}`,
+      lowLabel: `${mLabel(low.m)} 최저 ${won(low.p)}`, ref: d.price, refLabel: `이번 딜 ${won(d.price)}`,
+      xs: [mLabel(pts[0].m), mLabel(pts[Math.floor((pts.length - 1) / 2)].m), mLabel(pts[pts.length - 1].m)] })
+    + `<p class="note">${pts.length < raw.length ? '구성이 다른 것으로 보이는 값은 뺐습니다. ' : ''}달마다 가장 낮았던 한 순간의 값이라, 그 값에 늘 살 수 있었던 건 아니에요.</p>`;
 };
 // 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
 const compsTable = d => {
