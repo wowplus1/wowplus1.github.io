@@ -196,7 +196,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .note{font-size:12.5px;color:var(--dim);margin:6px 0 0}.note a{color:var(--mid)}
 .about p{color:var(--mid);margin:0;max-width:68ch}
 .about b,.vlist b{color:var(--brand-ink);font-weight:700}
-.about > p{line-height:1.85;margin:0 0 10px}.about > p:last-of-type{margin-bottom:0}.about .note{margin-top:8px}.tbl td.gain{color:var(--brand-ink);font-weight:700}
+.about > p{line-height:1.85;margin:0 0 10px}.lead + .lead{margin-top:-6px}.about > p:last-of-type{margin-bottom:0}.about .note{margin-top:8px}.tbl td.gain{color:var(--brand-ink);font-weight:700}
 .join{background:var(--ink);color:var(--paper);border-radius:22px;padding:22px 20px;margin:30px 0 0;display:grid;gap:6px}
 .join h3{margin:0;font-size:19px;letter-spacing:-.035em}.join p{margin:0 0 8px;color:color-mix(in srgb,var(--paper) 72%,transparent);font-size:14px}
 .join .assure{color:color-mix(in srgb,var(--paper) 70%,transparent)}
@@ -653,31 +653,33 @@ for (const w of KW) {
   const byMonth = {};
   for (const d of arr) { const t = kst(d.sentAt); const k = `${t.y}-${String(t.mo).padStart(2, '0')}`; (byMonth[k] = byMonth[k] || []).push(d); }
   const months = Object.keys(byMonth).sort().reverse();
-  const monthTbl = months.length >= 2 ? `<h2>${esc(w)} 월별 기록</h2><div class="tbl"><table><thead><tr><th>달</th><th class="r">딜</th><th class="r">가장 낮은 가격</th>${usc ? `<th class="r">가장 낮은 ${usc.label}</th>` : ''}</tr></thead><tbody>
+  const monthTbl = months.length >= 2 ? `<h2>달마다 얼마였을까?</h2><div class="tbl"><table><thead><tr><th>달</th><th class="r">딜</th><th class="r">제일 싼 가격</th>${usc ? `<th class="r">제일 싼 ${usc.label}</th>` : ''}</tr></thead><tbody>
 ${months.map(k => { const a = byMonth[k], lo = a.reduce((x, y) => (y.price > 0 && y.price < x.price ? y : x), a[0]);
     const ua = usc ? a.filter(x => uarr.includes(x)).sort((x, y) => UNITS.get(x.uid).per - UNITS.get(y.uid).per) : [];
-    return `<tr><td>${+k.slice(0, 4)}년 ${+k.slice(5)}월</td><td class="r">${a.length}건</td><td class="r"><a href="${dealUrl(lo)}">${won(lo.price)}</a></td>${usc ? `<td class="r">${ua.length ? unitWon(ua[0], usc) : '–'}</td>` : ''}</tr>`; }).join('')}
+    return `<tr><td>${+k.slice(0, 4)}년 ${+k.slice(5)}월</td><td class="r">${a.length}개</td><td class="r"><a href="${dealUrl(lo)}">${won(lo.price)}</a></td>${usc ? `<td class="r">${ua.length ? unitWon(ua[0], usc) : '–'}</td>` : ''}</tr>`; }).join('')}
 </tbody></table></div>` : '';
-  const unitBox = usc ? `<h2>${usc.label} 가격 순위 <small>${uarr.length}건</small></h2>
-<p>상품마다 용량·개수가 달라 ${usc.label} 가격으로 바꿔 줄 세웠습니다. ${usc.label} 가장 쌌던 건 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)}, ${esc(uarr[0].mall)})이에요.</p>
-${unitTable(uarr.slice(0, 15), usc, null)}<p class="note">용량·개수는 상품 이름에서 읽었습니다. 이름만으로 단가를 알 수 없는 딜은 빠져 있어요.</p>` : '';
+  const unitBox = usc ? `<h2>${usc.label} 가격으로 줄 세우면? <small>${uarr.length}개</small></h2>
+<p>상품마다 용량·개수가 달라서 ${usc.label} 가격으로 바꿔 줄 세웠어요. 제일 싼 건 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)}, ${esc(uarr[0].mall)})이에요.</p>
+${unitTable(uarr.slice(0, 15), usc, null)}<p class="note">용량·개수는 상품 이름에서 읽었어요. 이름만으로 단가를 알 수 없는 딜은 빠져 있어요.</p>` : '';
+  const chart = spark(arr, usc, uarr), fq = freqOf(appearOf(arr));
   const body = `<h1>${esc(w)} 핫딜·가격 기록</h1>
-<p class="lead">핫딜베스트가 고른 <b>${esc(w)}</b> 딜 ${arr.length}건입니다.${(f => f.gap ? ` ${dateShort(f.first)}부터 평균 <b>${f.gap}일</b>에 한 번꼴로 떴어요.` : '')(freqOf(appearOf(arr)))} 이 중 가장 낮았던 가격은 <span class="hl">${won(min.price)}</span>(${dateTime(min.sentAt)}, ${esc(min.mall)})이에요.${usc ? ` 용량이 달라 ${usc.label} 가격으로 보면 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)})이 가장 쌌습니다.` : ' 상품 구성이 서로 달라 단순 비교는 어렵습니다.'}</p>
-${spark(arr, usc, uarr)}
+<p class="lead">핫딜베스트가 고른 <b>${esc(w)}</b> 딜, 지금까지 <b>${arr.length}개</b>예요.${fq.gap ? ` ${dateShort(fq.first)}부터 평균 <b>${fq.gap}일</b>에 한 번꼴로 떴어요.` : ''}</p>
+<p class="lead">그중 제일 쌌던 건 ${dateShort(min.sentAt)} ${esc(min.mall)}의 <span class="hl">${won(min.price)}</span>이에요.${usc ? ` 다만 용량이 제각각이라, ${usc.label} 가격으로 따지면 ${dateShort(uarr[0].sentAt)}의 <span class="hl">${unitWon(uarr[0], usc)}</span>이 제일 쌌어요.` : ' 상품 구성이 서로 달라서 가격만으로 비교하긴 어려워요.'}</p>
+${chart ? `<h2>가격은 어떻게 움직였을까?</h2>${chart}` : ''}
 ${unitBox}
 ${monthTbl}
-<h2>날짜별 가격 <small>${arr.length}건</small></h2><div class="tbl"><table><thead><tr><th>날짜</th><th>상품</th><th class="r">가격</th></tr></thead><tbody>
+<h2>지금까지 뜬 ${esc(w)} 딜 <small>${arr.length}개</small></h2><div class="tbl"><table><thead><tr><th>날짜</th><th>상품</th><th class="r">가격</th></tr></thead><tbody>
 ${arr.map(d => `<tr${d === min ? ' class="low"' : ''}><td>${dateTime(d.sentAt)}</td><td><a href="${dealUrl(d)}">${esc(d.title)}</a></td><td class="r">${won(d.price)}</td></tr>`).join('')}
 </tbody></table></div>
 ${join}
-<h2>${esc(w)} 딜 모아 보기</h2>${grid(arr)}`;
+<h2>${esc(w)} 딜 한눈에 보기</h2>${grid(arr)}`;
   write(`k/${w}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${w} 핫딜 기록`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) }, title: `${w} 핫딜·최저가 기록 - ${SITE}`, desc: `핫딜베스트가 고른 ${w} 핫딜 ${arr.length}건과 날짜별 가격. 가장 낮았던 가격 ${won(min.price)}.` + (usc ? ` ${usc.label} 가장 쌌던 가격 ${unitWon(uarr[0], usc)}.` : ''),
     canon: url('k', w), body, img: min.image, crumbs: [['홈', '/'], ['품목별', '/k/'], [w, url('k', w)]] }));
   add(url('k', w), kst(arr[0].sentAt).ymd);
 }
 write('k/index.html', page({ title: `품목별 핫딜 기록 - ${SITE}`, desc: '브랜드·품목별로 핫딜베스트가 고른 핫딜과 가격 기록을 모았습니다.', canon: '/k/',
   crumbs: [['홈', '/'], ['품목별', '/k/']],
-  body: `<h1>품목별 핫딜 기록</h1><p class="lead">3번 이상 나온 브랜드·품목이에요. 누르면 날짜별 가격을 볼 수 있습니다.</p><ul class="chips">${KW.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>${join}` }));
+  body: `<h1>품목별 핫딜 기록</h1><p class="lead">3번 이상 뜬 브랜드·품목이에요. 누르면 그동안 얼마에 떴는지 볼 수 있어요.</p><ul class="chips">${KW.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>${join}` }));
 add('/k/', kst(deals[0].sentAt).ymd);
 
 // 분류별
