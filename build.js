@@ -430,6 +430,33 @@ ${spec.length ? `<p style="margin:12px 0 6px">제조사 표기 스펙</p><ul cla
 <p class="note">${dateTime(d.sentAt)}에 ${d.web ? '사이트에 올리면서' : '카톡방에 보내면서'} 함께 확인한 값입니다. 지금은 다를 수 있어요.</p></section>`;
 };
 
+// 얼마나 자주 뜨나 (11/4) — 「놓쳤지만 또 온다」. 끝난 딜 페이지로 들어온 사람에게 다음 딜을 기다릴 근거를 준다.
+// 같은 상품 기록(다시 보낸 것·같은 이름/모델)이 둘 이상이면 그걸, 아니면 품목 단어 무리(3건 이상)를 쓴다. 숫자는 기록 그대로
+const NOW = Date.now();
+const appearOf = arr => [...new Set(arr.flatMap(x => [x.sentAt, ...(x.earlier || []).map(e => e.sentAt)]).filter(Boolean).map(t => String(t).slice(0, 16)))].sort();
+const freqOf = times => {
+  const n = times.length, first = Date.parse(times[0] + ':00+09:00'), last = Date.parse(times[n - 1] + ':00+09:00');
+  const gap = n >= 3 && last > first ? Math.round((last - first) / 864e5 / (n - 1)) : null;
+  return { n, first: times[0], last: times[n - 1], gap: gap >= 1 ? gap : null, d30: times.filter(t => NOW - Date.parse(t + ':00+09:00') < 30 * 864e5).length };
+};
+const freqBox = d => {
+  const same = appearOf([d, ...sameItems(d)]);
+  let head, text;
+  if (same.length >= 2) {
+    const f = freqOf(same);
+    head = '이 상품, 또 싸게 뜰까?';
+    text = `이 상품은 ${dateShort(f.first)}부터 <b>${f.n}번</b> 싸게 떴어요${f.gap ? ` (평균 ${f.gap}일에 한 번꼴)` : ''}. 뜬 날: ${same.map(t => dateShort(t)).join(', ')}.`;
+  } else {
+    const w = kwOf(d).filter(w => byKw[w].length >= 3).sort((a, b) => (TYPE_WORDS.has(b) - TYPE_WORDS.has(a)) || (byKw[a].length - byKw[b].length))[0];
+    if (!w) return '';
+    const f = freqOf(appearOf(byKw[w]));
+    head = `${esc(w)} 딜, 또 뜰까?`;
+    text = [`핫딜베스트가 고른 <a href="${url('k', w)}">${esc(w)}</a> 딜은 ${dateShort(f.first)}부터 <b>${f.n}번</b> 나왔어요.`,
+      f.gap ? `평균 <b>${f.gap}일</b>에 한 번꼴입니다.` : '', f.d30 ? `최근 30일에만 ${f.d30}번 나왔고,` : '', `가장 최근은 ${dateShort(f.last)}이에요.`].filter(Boolean).join(' ');
+  }
+  return `<section class="about"><h2>${head}</h2><p style="line-height:1.85">${text}<br>이번 가격을 놓쳤다면 다음 딜은 카톡방에서 먼저 받아 볼 수 있어요.</p></section>`;
+};
+
 const about = (d, kws) => {
   const t = kst(d.sentAt);
   const parts = [`${esc(d.title)}${은는(d.title)} ${t.y}년 ${t.mo}월 ${t.d}일 ${t.h}:${t.mi}에 ${esc(d.mall)}에서 ${won(d.price)}에 올라온 딜입니다.`];
@@ -489,6 +516,7 @@ ${cmp}
 ${verifyBox(d)}
 <section class="about"><h2>이 딜에 대해</h2><p style="line-height:1.85">${about(d, kws)}</p></section>
 ${unitSec}
+${freqBox(d)}
 ${d.earlier && d.earlier.length ? `<h2>이 상품, 전에 보낸 가격</h2><div class="tbl"><table><thead><tr><th>보낸 시각</th><th class="r">가격</th><th class="r">다른 곳</th></tr></thead><tbody>
 ${[Object.assign({ now: 1 }, d), ...d.earlier].map((e, i, arr) => `<tr${+e.price > 0 && +e.price === Math.min(...arr.map(x => +x.price || Infinity)) ? ' class="low"' : ''}><td>${dateTime(e.sentAt)}${e.now ? ' (이번)' : e.web ? ' · 사이트' : ''}</td><td class="r">${won(e.price)}</td><td class="r">${won(e.baseline)}</td></tr>`).join('')}
 </tbody></table></div><p class="note">같은 상품도 보낼 때마다 가격이 달라요. 지금 가격은 판매처에서 확인하세요.</p>` : ''}
@@ -526,7 +554,7 @@ ${months.map(k => { const a = byMonth[k], lo = a.reduce((x, y) => (y.price > 0 &
 <p>상품마다 용량·개수가 달라 ${usc.label} 가격으로 바꿔 줄 세웠습니다. ${usc.label} 가장 쌌던 건 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)}, ${esc(uarr[0].mall)})이에요.</p>
 ${unitTable(uarr.slice(0, 15), usc, null)}<p class="note">용량·개수는 상품 이름에서 읽었습니다. 이름만으로 단가를 알 수 없는 딜은 빠져 있어요.</p>` : '';
   const body = `<h1>${esc(w)} 핫딜·가격 기록</h1>
-<p class="lead">핫딜베스트가 고른 <b>${esc(w)}</b> 딜 ${arr.length}건입니다. 이 중 가장 낮았던 가격은 <span class="hl">${won(min.price)}</span>(${dateTime(min.sentAt)}, ${esc(min.mall)})이에요.${usc ? ` 용량이 달라 ${usc.label} 가격으로 보면 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)})이 가장 쌌습니다.` : ' 상품 구성이 서로 달라 단순 비교는 어렵습니다.'}</p>
+<p class="lead">핫딜베스트가 고른 <b>${esc(w)}</b> 딜 ${arr.length}건입니다.${(f => f.gap ? ` ${dateShort(f.first)}부터 평균 <b>${f.gap}일</b>에 한 번꼴로 떴어요.` : '')(freqOf(appearOf(arr)))} 이 중 가장 낮았던 가격은 <span class="hl">${won(min.price)}</span>(${dateTime(min.sentAt)}, ${esc(min.mall)})이에요.${usc ? ` 용량이 달라 ${usc.label} 가격으로 보면 <span class="hl">${unitWon(uarr[0], usc)}</span>(${dateShort(uarr[0].sentAt)})이 가장 쌌습니다.` : ' 상품 구성이 서로 달라 단순 비교는 어렵습니다.'}</p>
 ${spark(arr)}
 ${unitBox}
 ${monthTbl}
