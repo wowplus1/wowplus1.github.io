@@ -204,13 +204,13 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .join .assure{color:color-mix(in srgb,var(--paper) 70%,transparent)}
 /* 표·차트 */
 .lc{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:16px 16px 10px;margin:0 0 6px}
-.lc-plot{position:relative;height:160px;margin-left:46px}
+.lc-plot{position:relative;height:160px;margin-left:58px}
 .lc-plot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;color:var(--c)}
 .lc-grid{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
 .lc-area{fill:currentColor;fill-opacity:.1}.lc-band{fill:var(--brand);fill-opacity:.13}.lc-tail{fill:none;stroke:var(--brand);stroke-width:2.5;stroke-dasharray:5 4;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .lc-line{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .lc-ref{stroke:var(--brand);stroke-opacity:.8;stroke-width:1;vector-effect:non-scaling-stroke}
-.lc-y{position:absolute;left:-46px;width:40px;text-align:right;transform:translateY(-50%);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.lc-y{position:absolute;left:-58px;width:52px;text-align:right;transform:translateY(-50%);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
 .lc-dot{position:absolute;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px var(--paper);opacity:.6}
 .lc-dot.low{width:10px;height:10px;margin:-5px 0 0 -5px;opacity:1}
 .lc-dot.me{width:12px;height:12px;margin:-6px 0 0 -6px;opacity:1;background:var(--paper);box-shadow:0 0 0 2.5px var(--ink),0 0 0 5px var(--paper)}
@@ -218,7 +218,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .lc-lab.below{transform:translate(-50%,9px)}.lc-lab.l{transform:translate(-4px,calc(-100% - 9px))}.lc-lab.l.below{transform:translate(-4px,9px)}
 .lc-lab.r{transform:translate(calc(-100% + 4px),calc(-100% - 9px))}.lc-lab.r.below{transform:translate(calc(-100% + 4px),9px)}
 .lc-lab.me{color:var(--brand-ink);font-weight:700}.lc-lab.lowlab{color:var(--mid);font-weight:500}.lc-lab.reflab{color:var(--brand-ink);font-weight:700;transform:translate(-100%,calc(-100% - 3px))}
-.lc-x{display:flex;justify-content:space-between;margin:6px 0 0 46px;font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+.lc-x{position:relative;height:18px;margin:6px 0 0 58px;font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}.lc-x span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}.lc-x span:first-child{transform:translateX(-3px)}.lc-x span:last-child{transform:translateX(calc(-100% + 3px))}.lc-x span.me{color:var(--brand-ink);font-weight:700}
 .spark{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:14px 14px 8px;margin:0 0 6px}
 .spark svg{width:100%;height:120px;display:block}.spark .sparktip{margin:6px 0 2px}.spark .lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
 .tbl{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
@@ -309,7 +309,7 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria,
   const iLow = body.reduce((b, p, i) => (p.v < body[b].v ? i : b), 0);
   const tailPath = tail ? `<path d="M${X(pts[pts.length - 2].x).toFixed(2)} ${Y(pts[pts.length - 2].v).toFixed(2)} L ${X(pts[pts.length - 1].x).toFixed(2)} ${Y(pts[pts.length - 1].v).toFixed(2)}" class="lc-tail"/>` : '';
   // 세로축 값은 짧게 — 「30만」·「2.5만」·「1.25만」·「7,500」. 반올림하면 눈금이 틀린 값이 된다(1.25만 → 1.3만, 1.75만 → 1.8만 으로 나갔다)
-  const fmt = n => n >= 1e5 ? +(n / 1e4).toFixed(1) + '만' : n >= 1e4 ? +(n / 1e4).toFixed(2) + '만' : Math.round(n).toLocaleString('ko-KR');
+  const big = hi >= 1e5, fmt = n => big ? +(n / 1e4).toFixed(1) + '만원' : Math.round(n).toLocaleString('ko-KR') + '원';
   // 숫자 표시 자리 고르기 (11/4) — 점 위·아래 × 가운데·왼쪽·오른쪽 여섯 자리 중, 다른 점·선·먼저 놓인 표시를 가장 적게 가리는 곳.
   // 글자 폭은 모르니 좁은 화면(그래프 폭 300px) 기준으로 넉넉히 잡는다. 단위는 그래프 안 % (가로 300px · 세로 160px)
   const segs = []; for (let i = 1; i < pts.length; i++) for (let k = 1; k < 12; k++) { const t = k / 12;
@@ -334,7 +334,7 @@ const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria,
   return `<div class="lc" style="--c:${color}" role="img" aria-label="${esc(aria)}"><div class="lc-plot">
 <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
 ${ticks.map(t => `<line x1="0" x2="100" y1="${Y(t).toFixed(2)}" y2="${Y(t).toFixed(2)}" class="lc-grid"/>`).join('')}
-${!tail && band && ref > 0 ? `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(Math.max(p.v, ref)).toFixed(2)).join(' ')} L ${X(pts[pts.length - 1].x).toFixed(2)} ${Y(ref).toFixed(2)} L ${X(pts[0].x).toFixed(2)} ${Y(ref).toFixed(2)} Z" class="lc-band"/>` : `<path d="${line} L ${X(body[body.length - 1].x).toFixed(2)} 100 L ${X(body[0].x).toFixed(2)} 100 Z" class="lc-area"/>`}
+${!tail && band && ref > 0 ? `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(2) + ' ' + Y(Math.max(p.v, ref)).toFixed(2)).join(' ')} L ${X(pts[pts.length - 1].x).toFixed(2)} ${Y(ref).toFixed(2)} L ${X(pts[0].x).toFixed(2)} ${Y(ref).toFixed(2)} Z" class="lc-band"/>` : ''}
 ${ref > 0 ? `<line x1="0" x2="100" y1="${Y(ref).toFixed(2)}" y2="${Y(ref).toFixed(2)}" class="lc-ref"/>` : ''}
 <path d="${line}" class="lc-line"/>${tailPath}</svg>
 ${ticks.map(t => `<span class="lc-y" style="top:${Y(t).toFixed(2)}%">${fmt(t)}</span>`).join('')}
@@ -343,7 +343,7 @@ ${me != null && me !== iLow ? `<i class="lc-dot me" style="left:${X(pts[me].x).t
 ${me != null && meLabel ? lab(me, meLabel, 'me') : ''}
 ${lowLabel ? lab(iLow, lowLabel, 'lowlab') : ''}
 ${ref > 0 && refLabel ? `<span class="lc-lab reflab" style="left:97%;top:${Y(ref).toFixed(2)}%">${refLabel}</span>` : ''}
-</div><div class="lc-x">${xs.map(x => `<span>${x}</span>`).join('')}</div></div>`;
+</div><div class="lc-x">${xs.map(t => `<span${t.me ? ' class="me"' : ''} style="left:${X(t.x).toFixed(2)}%">${t.t}</span>`).join('')}</div></div>`;
 };
 // 가격 기록 선 그래프 — 가로축은 실제 날짜 간격, 단가 무리 3건 이상이면 단가로 (용량 다른 상품을 총액으로 이으면 오르내림이 거짓말이 된다).
 // 점을 누르면 상품명이 뜨던 줄은 11/4 사장님 요청으로 뺐다 — 다시 넣지 않는다
@@ -361,7 +361,8 @@ const spark = (arr, usc, uarr, me) => {
   if (!unit && Math.max(...vals) > 3 * Math.min(...vals)) return '';
   return lineChart({ pts, color: 'var(--brand)', aria: `${what}가격 기록 그래프, 가장 낮은 값 ${won(low)}`,
     lowLabel: `최저 ${what}${won(low)}`, me: iMe >= 0 ? iMe : null, meLabel: iMe >= 0 && pts[iMe].v !== low ? `이번 ${won(pts[iMe].v)}` : '',
-    xs: [dateShort(ds[0].sentAt), t1 - t0 > 20 * 864e5 ? dateShort(new Date((t0 + t1) / 2 + 9 * 3600e3).toISOString()) : '', dateShort(ds[ds.length - 1].sentAt)] })
+    xs: (() => { const out = []; ds.forEach((d, i) => { const x = pts[i].x; if (i === 0 || i === ds.length - 1 || out.every(o => Math.abs(o.x - x) > 0.18)) out.push({ x, t: dateShort(d.sentAt), me: d === me }); });
+      return out.filter((o, i, a) => i === a.length - 1 || a[a.length - 1].x - o.x > 0.16 || i === 0); })() })
     + (iMe >= 0 && pts[iMe].v === low ? '<p class="note">이번 딜이 이 기록에서 가장 낮은 값이에요.</p>' : '')
     + (unit && !me ? `<p class="note">용량이 달라 ${usc.label} 가격으로 그렸어요.</p>` : '');
 };
@@ -506,7 +507,7 @@ const trendChart = d => {
   return `<h3 style="margin:18px 0 6px;font-size:15px">이 상품의 1년 시세</h3><p class="trend-head">${head}</p>`
     + lineChart({ pts: [...pts.map((x, i) => ({ x: i / pts.length, v: x.p })), { x: 1, v: p }], color: 'var(--mid)', tail: true, aria: `월별 최저가 그래프, 평소 ${won(usual)} 안팎, 이번 딜 ${won(p)}`,
       lowLabel: `${mLabel(low.m)} 최저 ${won(low.p)}`, me: pts.length, meLabel: `이번 딜 ${won(p)}`,
-      xs: [mLabel(pts[0].m), mLabel(pts[Math.floor((pts.length - 1) / 2)].m), '이번 딜'] })
+      xs: [...pts.map((x, i) => ({ x: i / pts.length, t: mLabel(x.m) })).filter((o, i) => i % 2 === 0 && i < pts.length - 1), { x: 1, t: '이번 딜', me: true }] })
     + `<p class="note">회색 선은 같은 규격 상품이 달마다 가장 싸게 팔렸던 값이고, 맨 끝 빨간 점선이 이번 딜 가격이에요.${pts.length < raw.length ? ' 구성이 달라 보이는 값은 뺐어요.' : ''}</p>`;
 };
 // 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
