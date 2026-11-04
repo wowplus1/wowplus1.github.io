@@ -41,6 +41,8 @@ const DISCLOSURE = {
   '쿠팡': '이 게시물은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.',
   '토스쇼핑': '토스쇼핑 쉐어링크를 통해 수수료를 받습니다.',
 };
+// 「판매글 5곳 최저가」 는 우리 안쪽 말이라 「다른 판매처 5곳 중 최저」 로 보여 준다 (11/4 점검)
+const noteKo = t => String(t || '').replace(/^판매글 (\d+)곳 최저가/, '다른 판매처 $1곳 중 최저').replace(/^판매글 (\d+)곳 중간값/, '다른 판매처 $1곳의 중간 가격').replace(/^다른 곳 최저$/, '다른 판매처 중 최저');
 const disclosureFor = m => DISCLOSURE[m] || '이 페이지의 링크를 통해 구매하시면 일정액의 수수료를 제공받습니다.';
 
 // ── 키워드: 제목에서 브랜드·품목 이름을 뽑는다. 3건 이상 나온 것만 모음 페이지를 만든다 ──
@@ -266,7 +268,7 @@ ${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ''}
 <main class="wrap">
 ${crumbs ? `<nav class="crumb" aria-label="현재 위치">${crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="${c[1]}">${esc(c[0])}</a>` : `<span>${esc(c[0])}</span>`).join(' › ')}</nav>` : ''}
 ${body}
-<footer><span>가격은 핫딜베스트가 확인한 때 기준이라, 판매처 사정에 따라 언제든 바뀔 수 있어요. 「다른 곳」 가격은 그때 함께 확인한 판매글 기준이에요.</span>
+<footer><span>가격은 핫딜베스트가 확인한 때 기준이라, 판매처 사정에 따라 언제든 바뀔 수 있어요. 「다른 곳」 가격은 그때 함께 확인한 다른 판매처 가격이에요.</span>
 <span>일부 링크는 제휴 링크라서, 쇼핑몰마다 고지 문구를 함께 적어요.</span>
 <span>운영 주식회사 와우플러스 · <a href="https://hotdeal.best/?utm_source=${SRC}">hotdeal.best</a></span></footer>
 </main>
@@ -521,7 +523,7 @@ const compsTable = d => {
   if (cs.length < 2 || !(d.price > 0)) return '';   // 한 곳뿐이면 위 비교 상자·문장과 같은 말이다
   return `<h3 style="margin:18px 0 6px;font-size:15px">다른 곳은 얼마였을까요?</h3><div class="tbl"><table><thead><tr><th>어디</th><th class="r">가격</th><th class="r">이번 딜과 차이</th></tr></thead><tbody>
 <tr class="low"><td><b>이번 딜</b> · ${esc(d.mall)}</td><td class="r">${won(d.price)}</td><td class="r">–</td></tr>
-${cs.map(c => `<tr><td>${esc(c.name || '다른 곳')}</td><td class="r">${won(c.price)}</td><td class="r${c.price > d.price ? ' gain' : ''}">${c.price > d.price ? '+' + won(c.price - d.price) : c.price < d.price ? '−' + won(d.price - c.price) : '같음'}</td></tr>`).join('')}
+${cs.map(c => `<tr><td>${esc(noteKo(c.name) || '다른 곳')}</td><td class="r">${won(c.price)}</td><td class="r${c.price > d.price ? ' gain' : ''}">${c.price > d.price ? '+' + won(c.price - d.price) : c.price < d.price ? '−' + won(d.price - c.price) : '같음'}</td></tr>`).join('')}
 </tbody></table></div>`;
 };
 // 이 가격, 얼마나 싼 거예요? (11/4 사장님: 「보고서처럼 딱딱하다, 편하게 읽히게」)
@@ -538,7 +540,7 @@ const storyBox = d => {
     P.push((c.malls > 1 ? `같은 규격 상품을 ${c.malls}곳에서 팔고 있었는데, 그중 제일 싼 곳도 ${won(c.market)}${ship}이었어요.`
       : `같은 규격 상품을 파는 곳이 한 곳뿐이었는데, 거기 가격이 ${won(c.market)}${ship}이었어요.`) + cheap);
   } else if (d.baseline && d.saving) {
-    P.push(`같은 때 다른 곳은 ${won(d.baseline)}이었어요${d.baselineNote ? `(${esc(d.baselineNote)})` : ''}.` + cheap);
+    P.push(`같은 때 ${d.baselineNote ? esc(noteKo(d.baselineNote)) + '가' : '다른 곳은'} ${won(d.baseline)}이었어요.` + cheap);
   } else if (d.alt && d.alt.price > 0) {
     P.push(`다른 곳은 ${won(d.alt.price)}이었어요${d.alt.where ? `(${esc(d.alt.where)})` : ''}. 차이가 크지 않아서 할인율은 따로 안 적었어요.`);
   }
@@ -563,7 +565,7 @@ const storyBox = d => {
   return `<section class="about story"><h2>이 가격, 얼마나 싼 거예요?</h2>${P.map(p => `<p>${p}</p>`).join('')}
 ${compsTable(d)}${trendChart(d)}
 ${spec.length ? `<h3 style="margin:18px 0 6px;font-size:15px">이런 상품이에요</h3><ul class="chips specs">${spec.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="note">제조사가 적은 내용이에요.</p>` : ''}
-${buyLink(d) ? `<div class="stack again">${buyLink(d)}</div>` : ''}</section>`;
+${buyLink(d) && (P.length >= 4 || compsTable(d) || trendChart(d)) ? `<div class="stack again">${buyLink(d)}</div>` : ''}</section>`;
 };
 
 // 얼마나 자주 뜨나 (11/4) — 「놓쳤지만 또 온다」. 끝난 딜 페이지로 들어온 사람에게 다음 딜을 기다릴 근거를 준다.
@@ -632,7 +634,7 @@ ${unitTable(rows, ug.sc, d)}<p class="note">용량·개수는 상품 이름에�
   const cmp = d.baseline && d.price ? `<div class="cmp" aria-label="가격 비교">
 <div class="row us"><b>이 딜</b><span class="bar"><i style="width:${Math.max(6, Math.round(d.price / d.baseline * 100))}%"></i></span><span>${won(d.price)}</span></div>
 <div class="row"><span>다른 곳</span><span class="bar"><i style="width:100%"></i></span><span>${won(d.baseline)}</span></div>
-${d.baselineNote ? `<p>${esc(d.baselineNote)} · 보낸 시점에 함께 확인한 가격</p>` : ''}</div>` : '';
+${d.baselineNote ? `<p>${esc(noteKo(d.baselineNote))} · 보낸 때 함께 확인한 가격</p>` : ''}</div>` : '';
   const body = `<div class="deal">
 <div class="shot">${d.image ? `<img src="${esc(d.image)}" alt="${esc(d.title)}" referrerpolicy="no-referrer">` : ''}</div>
 <div><span class="when"><span class="mall">${esc(d.mall)}</span>${dateKo(d.sentAt)} ${d.web ? '확인 · 사이트에만 올린 딜' : '카톡방에 보냄'}</span>
@@ -846,7 +848,7 @@ write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 
         var bar = el('span', 'bar'), i = el('i'); i.style.width = x[3] + '%'; bar.appendChild(i); row.appendChild(bar);
         row.appendChild(el('span', '', won(x[2]))); cmp.appendChild(row);
       });
-      if (d.baselineNote) cmp.appendChild(el('p', '', d.baselineNote + ' · 보낸 시점에 함께 확인한 가격'));
+      if (d.baselineNote) cmp.appendChild(el('p', '', String(d.baselineNote).replace(/^판매글 (\\d+)곳 최저가/, '다른 판매처 $1곳 중 최저').replace(/^판매글 (\\d+)곳 중간값/, '다른 판매처 $1곳의 중간 가격') + ' · 보낸 때 함께 확인한 가격'));
       info.appendChild(cmp);
     }
     var w = el('p', 'warn'); w.appendChild(el('b', '', '⚠ ' + short(d.sentAt) + ' 기준 가격이에요'));
