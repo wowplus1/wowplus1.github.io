@@ -272,7 +272,7 @@ const buyLink = d => {
 //  2) 단가를 읽을 수 있는 품목(unit 무리 3건 이상)은 단가로 그린다 — 용량이 다른 상품을 총액으로 이으면 오르내림이 거짓말이 된다
 //  3) 점에 손을 대거나 누르면 아래 줄에 날짜·상품·가격이 뜬다 (자바스크립트 없으면 마우스 툴팁만)
 // 점은 길이 0 선의 둥근 끝으로 찍는다 — preserveAspectRatio="none" 이라 원(circle)은 폰에서 찌그러진다
-const spark = (arr, usc, uarr) => {
+const spark = (arr, usc, uarr, me) => {
   const unit = !!(usc && uarr && uarr.length >= 3);
   const val = d => (unit ? Math.round(UNITS.get(d.uid).per * usc.k) : d.price);
   const pts = (unit ? uarr : arr).filter(d => d.price > 0).slice().sort((a, b) => a.sentAt.localeCompare(b.sentAt));
@@ -287,9 +287,9 @@ const spark = (arr, usc, uarr) => {
   const tip = (d, i) => `${dateShort(d.sentAt)} · ${d.title} · ${won(d.price)}${unit ? ` (${usc.label} ${won(vs[i])})` : ''}`;
   return `<div class="spark" role="img" aria-label="${what} 기록 그래프, 가장 낮은 ${what} ${won(lo)}"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
 <path d="${line} L ${xy[xy.length - 1][0].toFixed(1)} ${H} L ${xy[0][0].toFixed(1)} ${H} Z" fill="var(--brand-soft)"/><path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
-${xy.map((p, i) => `<g class="pt" data-t="${esc(tip(pts[i], i))}" data-u="${dealUrl(pts[i])}"><title>${esc(tip(pts[i], i))}</title><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="transparent" stroke-width="22" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="${i === iLow ? 'var(--brand)' : 'var(--paper)'}" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--brand)" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" stroke-opacity="${i === iLow ? 1 : .35}" vector-effect="non-scaling-stroke"/></g>`).join('')}</svg>
+${xy.map((p, i) => `<g class="pt" data-t="${esc(tip(pts[i], i))}" data-u="${dealUrl(pts[i])}"><title>${esc(tip(pts[i], i))}</title><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="transparent" stroke-width="22" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="${i === iLow ? 'var(--brand)' : 'var(--paper)'}" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--brand)" stroke-width="${i === iLow ? 11 : 7}" stroke-linecap="round" stroke-opacity="${i === iLow ? 1 : .35}" vector-effect="non-scaling-stroke"/>${pts[i] === me ? `<path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--ink)" stroke-width="13" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M${p[0].toFixed(1)} ${p[1].toFixed(1)}h0" stroke="var(--paper)" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : ''}</g>`).join('')}</svg>
 <div class="lbl"><span>${dateShort(pts[0].sentAt)}</span><span>${unit ? usc.label + ' · ' : ''}가장 낮음 ${won(lo)} · 가장 높음 ${won(hi)}</span><span>${dateShort(pts[pts.length - 1].sentAt)}</span></div>
-<p class="note sparktip">${unit ? `용량이 달라 ${usc.label} 가격으로 그렸어요. ` : ''}점을 누르면 어떤 딜이었는지 보여요.</p></div>
+<p class="note sparktip">${me && pts.includes(me) ? `검은 테 점이 이번 딜(${won(val(me))}), 빨간 점이 가장 낮았던 때예요. ` : ''}${unit ? `용량이 달라 ${usc.label} 가격으로 그렸어요. ` : ''}점을 누르면 어떤 딜이었는지 보여요.</p></div>
 <script>(function(){var b=document.currentScript.previousElementSibling;var t=b&&b.querySelector('.sparktip');if(!t)return;
 [].forEach.call(b.querySelectorAll('.pt'),function(g){function show(){t.innerHTML='';t.appendChild(document.createTextNode(g.getAttribute('data-t')+' '));var a=document.createElement('a');a.href=g.getAttribute('data-u');a.textContent='보기 →';t.appendChild(a);}
 g.addEventListener('mouseenter',show);g.addEventListener('click',show);});})();</script>`;
@@ -501,7 +501,10 @@ const freqBox = d => {
     text = [`핫딜베스트가 고른 <a href="${url('k', w)}">${esc(w)}</a> 딜은 ${dateShort(f.first)}부터 <b>${f.n}번</b> 나왔어요.`,
       f.gap ? `평균 <b>${f.gap}일</b>에 한 번꼴입니다.` : '', f.d30 ? `최근 30일에만 ${f.d30}번 나왔고,` : '', `가장 최근은 ${dateShort(f.last)}이에요.`].filter(Boolean).join(' ');
   }
-  return `<section class="about"><h2>${head}</h2><p style="line-height:1.85">${text}<br>이번 가격을 놓쳤다면 다음 딜은 카톡방에서 먼저 받아 볼 수 있어요.</p></section>`;
+  const ug = unitGroup(d);
+  const gw = kwOf(d).filter(w => byKw[w].length >= 3).sort((a, b) => (TYPE_WORDS.has(b) - TYPE_WORDS.has(a)) || (byKw[a].length - byKw[b].length))[0];
+  const chart = ug ? spark(ug.arr, ug.sc, ug.arr, d) : gw ? spark(byKw[gw], null, null, d) : '';
+  return `<section class="about"><h2>${head}</h2><p style="line-height:1.85">${text}<br>이번 가격을 놓쳤다면 다음 딜은 카톡방에서 먼저 받아 볼 수 있어요.</p>${chart ? `<h3 style="margin:14px 0 6px;font-size:15px">${esc(ug ? ug.w : gw)} 딜 가격 기록</h3>${chart}` : ''}</section>`;
 };
 
 const about = (d, kws) => {
