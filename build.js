@@ -286,12 +286,15 @@ const buyLink = d => {
 // 선 그래프 공용 (11/4 「단조롭다」 → 다시 그림). 상세 ①②·품목 페이지가 같이 쓴다.
 // 선·면·눈금선은 SVG(가로세로 비율 무시), 점·글자는 HTML 로 얹는다 — 폰에서도 점이 동그랗고 글자 크기가 그대로다.
 // 꾸밈은 빼고: 선 2px · 면은 같은 색 10% · 눈금선 1px 실선 · 숫자는 가장 낮은 점과 이번 딜에만 (모든 점에 숫자를 달지 않는다)
-const niceStep = span => { const raw = span / 3, p = Math.pow(10, Math.floor(Math.log10(raw || 1))); return [1, 2, 2.5, 5, 10].map(m => m * p).find(x => x >= raw) || raw; };
+// 눈금 간격 — 1·2·2.5·5 의 10배수 중, 칸이 5개 이하가 되는 가장 촘촘한 것 (필립스 18만~51만: 20만 간격이면 0부터 그려져 선이 납작해졌다)
+const niceStep = (lo, hi) => { const c = []; for (let e = Math.floor(Math.log10(Math.max(1, hi - lo))) - 2; c.length < 40; e++) for (const m of [1, 2, 2.5, 5]) c.push(m * Math.pow(10, e));
+  return c.find(st => Math.ceil(hi / st) - Math.floor(lo / st) <= 5) || c[c.length - 1]; };
 const lineChart = ({ pts, color, lowLabel, me, meLabel, ref, refLabel, xs, aria }) => {
   // pts: [{x: 0~1, v}] · me: pts 안의 이번 딜 번호 · ref: 가로 기준선 값(① 의 이번 딜 가격)
   const vs = pts.map(p => p.v).concat(ref > 0 ? [ref] : []);
   let lo = Math.min(...vs), hi = Math.max(...vs);
-  const step = niceStep(hi - lo || hi * 0.1 || 1);
+  if (hi === lo) { lo -= Math.max(1, lo * 0.05); hi += Math.max(1, hi * 0.05); }
+  const step = niceStep(lo, hi);
   lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step; if (hi === lo) hi = lo + step;
   const ticks = []; for (let t = lo; t <= hi + step / 2; t += step) ticks.push(t);
   const X = x => 3 + 94 * x, Y = v => 8 + 82 * (1 - (v - lo) / (hi - lo));   // 위 8% · 아래 10% 여백
