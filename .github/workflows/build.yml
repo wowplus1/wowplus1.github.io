@@ -39,7 +39,14 @@ jobs:
             git add archive.json
             git commit -m "딜 기록 갱신"
             git pull --rebase -q || true   # 그 사이 사람이 코드를 올렸으면 받아서 (10/23 push 거절로 한 번 실패)
-            git push
+            if ! git push; then
+              # 다른 실행이 먼저 archive.json 을 올렸다 (11/5 01:03·01:05 두 실행이 겹쳐 충돌).
+              # 한 줄짜리 JSON 이라 합칠 수 없다 — 최신본을 받아 update.js 를 한 번 더 돌려 그 위에 쌓는다
+              git rebase --abort 2>/dev/null || true
+              git fetch -q origin main && git reset -q --hard origin/main
+              node update.js
+              if ! git diff --quiet archive.json; then git add archive.json && git commit -m "딜 기록 갱신" && git push; fi
+            fi
           fi
       - name: IndexNow 목록 (바뀐 페이지)
         if: steps.upd.outputs.changed == 'true' || github.event_name != 'schedule'
