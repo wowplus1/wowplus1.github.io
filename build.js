@@ -518,6 +518,33 @@ const trendChart = d => {
     + `<p class="note">회색 선은 같은 규격 상품이 달마다 가장 싸게 팔렸던 값이고, 맨 끝 빨간 점선이 이번 딜 가격이에요.${pts.length < raw.length ? ' 구성이 달라 보이는 값은 뺐어요.' : ''}</p>`;
 };
 // 보낸 시점 다른 판매처 (피드 comps — 카톡 메시지의 비교 줄 그대로)
+// 다른 판매처 링크 (11/5) — 피드 sellers 의 쇼핑몰 코드·상품 번호로 우리 제휴 링크를 만든다. 다나와 링크는 쓰지 않는다(다나와 제휴 코드가 붙어 있다).
+// 틀은 hotdeal.best 「가격 비교」 칸(/api/price-compare)이 쓰는 것과 같다(11/5 풀어 보고 확인): 링크프라이스 a=A100702842 는 우리 딜 링크와 같은 계정.
+// 사이트 꼬리표 u_id=hotdealbest_web. G마켓은 에디 틀 — 사이트용 번호가 없어 카톡용 번호(2463553347)를 쓴다(수수료는 같고 리포트에서 카톡과 섞인다).
+// 상품 번호 모양이 틀이 기대하는 것과 다르면 링크를 안 만든다 — 엉뚱한 상품으로 보내느니 없는 게 낫다. 틀을 모르는 쇼핑몰(롯데마트몰·SK스토아 등)도 빈칸
+const sellerHref = s => {
+  const id = String(s.id || ''), c = String(s.code || ''), n = String(s.mall || '').trim();
+  const lp = (m, u) => 'https://click.linkprice.com/click.php?m=' + m + '&a=A100702842&l=9999&l_cd1=3&l_cd2=0&tu=' + encodeURIComponent(u) + '&u_id=hotdealbest_web';
+  if (c === 'TH201' || n === '11번가') return /^[0-9]{6,12}$/.test(id) ? lp('11st', 'https://www.11st.co.kr/products/' + id) : '';
+  if (c === 'EE715' || n === '옥션') return /^[A-Z]?[0-9]{6,12}$/.test(id) ? lp('auction', 'https://itempage3.auction.co.kr/DetailView.aspx?itemno=' + id) : '';
+  if (c === 'EE128' || /^G마켓$/i.test(n)) return /^[0-9]{6,12}$/.test(id) ? 'https://ad0981.kr/link/2463553347?gmarket2=' + id : '';
+  if (c === 'EE309' || /^롯데ON$/i.test(n)) return /^LO[0-9]{6,14}$/.test(id) ? lp('lotteon', 'https://www.lotteon.com/p/product/' + id) : '';
+  if (c === 'TN118' || c === 'ED901' || c === 'EE311' || /^(SSG\.COM|신세계몰|이마트몰)$/i.test(n)) return /^1[0-9]{12}$/.test(id) ? lp('emart', 'https://www.ssg.com/item/itemView.ssg?itemId=' + id) : '';
+  if (c === 'TRB03' || /신세계라이브/.test(n)) return /^[0-9]{6,12}$/.test(id) ? lp('ssglive', 'https://www.shinsegaetvshopping.com/display/detail/' + id) : '';
+  if (/^GS ?(SHOP|샵)$/i.test(n)) return /^[0-9]{6,12}$/.test(id) ? lp('gseshop', 'https://www.gsshop.com/prd/prd.gs?prdid=' + id) : '';
+  return '';
+};
+// 바로 갈 수 있는 판매처만, 4곳까지. 2곳이 안 되면 안 그린다(위 비교 상자와 같은 말이 된다)
+const sellersTable = d => {
+  const seen = new Set();
+  const rows = (Array.isArray(d.sellers) ? d.sellers : []).filter(x => x && x.price > 0)
+    .map(x => Object.assign({}, x, { href: sellerHref(x) })).filter(x => x.href && !seen.has(x.href) && seen.add(x.href)).slice(0, 4);
+  if (rows.length < 2) return '';
+  const ship = x => x.ship === 0 ? '무료' : x.ship > 0 ? won(x.ship) : '–';
+  return '<h3 style="margin:18px 0 6px;font-size:15px">다른 판매처에서 바로 보기</h3><div class="tbl"><table><thead><tr><th>판매처</th><th class="r">가격</th><th class="r">배송비</th><th class="r"></th></tr></thead><tbody>'
+    + rows.map(x => '<tr><td>' + esc(x.mall || '판매처') + '</td><td class="r">' + won(x.price) + '</td><td class="r">' + ship(x) + '</td><td class="r"><a href="' + esc(x.href) + '" target="_blank" rel="nofollow sponsored noopener">보기 ↗</a></td></tr>').join('')
+    + '</tbody></table></div><p class="note">보낸 때 함께 확인한 가격이라 지금은 다를 수 있어요. 바로 갈 수 있는 판매처만 골랐어요. 이 링크로 구매하시면 핫딜베스트가 일정액의 수수료를 받아요.</p>';
+};
 const compsTable = d => {
   const cs = Array.isArray(d.comps) ? d.comps.filter(c => c && c.price > 0).slice(0, 4) : [];
   if (cs.length < 2 || !(d.price > 0)) return '';   // 한 곳뿐이면 위 비교 상자·문장과 같은 말이다
@@ -568,9 +595,9 @@ const storyBox = d => {
   if (more) P.push(more);
   const spec = Array.isArray(d.spec) ? d.spec.filter(Boolean) : [];
   return `<section class="about story"><h2>이 가격, 얼마나 싼 거예요?</h2>${P.map(p => `<p>${p}</p>`).join('')}
-${compsTable(d)}${trendChart(d)}
+${sellersTable(d) || compsTable(d)}${trendChart(d)}
 ${spec.length ? `<h3 style="margin:18px 0 6px;font-size:15px">이런 상품이에요</h3><ul class="chips specs">${spec.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="note">제조사가 적은 내용이에요.</p>` : ''}
-${buyLink(d) && (P.length >= 4 || compsTable(d) || trendChart(d)) ? `<div class="stack again">${buyLink(d)}</div>` : ''}</section>`;
+${buyLink(d) && (P.length >= 4 || sellersTable(d) || compsTable(d) || trendChart(d)) ? `<div class="stack again">${buyLink(d)}</div>` : ''}</section>`;
 };
 
 // 얼마나 자주 뜨나 (11/4) — 「놓쳤지만 또 온다」. 끝난 딜 페이지로 들어온 사람에게 다음 딜을 기다릴 근거를 준다.
@@ -867,7 +894,7 @@ add('/', kst(deals[0].sentAt).ymd);
 const CLIENT = [
   `var DISCLOSURE = ${JSON.stringify(DISCLOSURE)}, HIST_TERM = ${JSON.stringify(HIST_TERM)}, SRC = ${JSON.stringify(SRC)};`,
   'var sameItems = function () { return []; };',   // 지난 기록은 정식 페이지에서
-  ...Object.entries({ esc, won, kst, dateKo, dateTime, dateShort, noteKo, disclosureFor, buyLink, niceStep, lineChart, trendChart, compsTable, storyBox, dealTop })
+  ...Object.entries({ esc, won, kst, dateKo, dateTime, dateShort, noteKo, disclosureFor, buyLink, niceStep, lineChart, trendChart, sellerHref, sellersTable, compsTable, storyBox, dealTop })
     .map(([k, f]) => `var ${k} = ${f.toString()};`),
 ].join('\n');
 write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 핫딜', canon: '/new/', noindex: true,
