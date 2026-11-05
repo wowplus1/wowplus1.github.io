@@ -895,7 +895,7 @@ ${ctaBtn}${assure}
 <div class="stats"><div class="stat"><b>${deals.length.toLocaleString('ko-KR')}</b><span>지금까지 고른 딜</span></div><div class="stat"><b>${AVG_SAVE}%</b><span>다른 곳보다 평균</span></div><div class="stat"><b>${Math.round(deals.length / DAYS)}개</b><span>하루 평균</span></div></div>
 </div><div class="pile" aria-hidden="true">${pile.map((d, i) => `<img src="${esc(d.image)}" alt="" referrerpolicy="no-referrer" style="left:${POS[i][0]}px;top:${POS[i][1]}px;transform:rotate(${POS[i][2]}deg);z-index:${i % 3 + 1}">`).join('')}</div></section>
 ${sbox()}
-<h2>방금 보낸 딜 <small id="livetag" class="livetag">실시간</small> <small><a href="/deals/">전체 ${deals.length}개 →</a></small></h2><ul class="grid" id="recent">${deals.slice(0, 20).map(card).join('')}</ul>
+<h2>방금 보낸 딜 <small id="livetag" class="livetag">실시간</small> <small><a href="/deals/">전체 ${deals.length}개 →</a></small></h2><ul class="grid" id="recent">${deals.slice(0, 100).map(card).join('')}</ul>
 <section class="why"><h2>핫딜 가격은 오래 가지 않아요</h2>${flow}<p class="note">위 기록은 보낸 때의 가격이에요. 지금 들어가면 이미 끝났을 수 있어서, 싸게 뜬 순간 카톡으로 보내 드려요.</p></section>
 <h2>분류별로 보기 <small><a href="/c/">전체 보기 →</a></small></h2><ul class="chips">${CATL.map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}</em></a></li>`).join('')}</ul>
 <h2>품목별 가격 기록 보기 <small><a href="/k/">전체 보기 →</a></small></h2><ul class="chips">${KW.slice(0, 36).map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>
