@@ -33,12 +33,18 @@ const parse = xml => {
   }
   const urls = fs.existsSync(LIST) ? fs.readFileSync(LIST, 'utf8').split('\n').filter(Boolean) : [];
   if (!urls.length) return console.log('IndexNow 보낼 것 없음');
-  for (let i = 0; i < urls.length; i += 10000) {
-    const r = await fetch('https://api.indexnow.org/indexnow', {
-      method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify({ host: HOST, key: KEY, keyLocation: `https://${HOST}/${KEY}.txt`, urlList: urls.slice(i, i + 10000) }),
-    });
-    // 200·202 면 받음. 실패해도 사이트 배포는 이미 끝났으니 멈추지 않는다
-    console.log(`IndexNow ${urls.slice(i, i + 10000).length}개 → ${r.status}`);
+  // 공용 창구(api.indexnow.org)는 참여 엔진에 나눠 준다고 하지만, 네이버 서치어드바이저 수집이 11/4 하루 2쪽뿐이라
+  // 네이버 창구에도 직접 보낸다 (11/5). 네이버는 2023-07 부터 IndexNow 를 받는다(indexnow.org 참여 엔진 목록)
+  for (const EP of ['https://api.indexnow.org/indexnow', 'https://searchadvisor.naver.com/indexnow']) {
+    for (let i = 0; i < urls.length; i += 10000) {
+      try {
+        const r = await fetch(EP, {
+          method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({ host: HOST, key: KEY, keyLocation: `https://${HOST}/${KEY}.txt`, urlList: urls.slice(i, i + 10000) }),
+        });
+        // 200·202 면 받음. 실패해도 사이트 배포는 이미 끝났으니 멈추지 않는다
+        console.log(`IndexNow ${new URL(EP).host} ${urls.slice(i, i + 10000).length}개 → ${r.status}`);
+      } catch (e) { console.log(`IndexNow ${new URL(EP).host} 실패(무시): ${e.message}`); }
+    }
   }
 })().catch(e => console.log('IndexNow 실패(무시):', e.message));
