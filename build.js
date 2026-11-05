@@ -142,6 +142,7 @@ h2{font-size:18px;letter-spacing:-.03em;margin:36px 0 14px;display:flex;align-it
 .cta{display:flex;align-items:center;justify-content:center;gap:9px;background:var(--kakao);color:#191600;font-weight:800;font-size:16.5px;letter-spacing:-.02em;border-radius:14px;padding:16px 14px;text-decoration:none;box-shadow:0 8px 20px -12px rgba(120,95,0,.55)}
 .cta svg{width:20px;height:20px;fill:#191600}.cta:active{transform:translateY(1px)}
 .assure{display:flex;justify-content:center;flex-wrap:wrap;gap:4px 10px;font-size:12.5px;color:var(--mid);margin:9px 0 0}.assure span::before{content:"✓ ";color:var(--brand)}
+.tbl a.go{display:inline-block;background:var(--brand);color:#fff;font-weight:800;font-size:13px;line-height:1;border-radius:999px;padding:8px 12px;text-decoration:none;white-space:nowrap;box-shadow:0 4px 10px -6px rgba(181,48,30,.7)}.tbl a.go:active{opacity:.8}
 .btn{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);border:0;color:#fff;font-weight:800;font-size:16px;letter-spacing:-.02em;border-radius:14px;padding:15px 14px;text-decoration:none;box-shadow:0 8px 20px -12px rgba(181,48,30,.7)}
 .btn:hover{background:var(--brand-ink)}.btn:active{transform:translateY(1px)}
 /* 칩 */
@@ -553,11 +554,11 @@ const sellersTable = d => {
   const rows = src.filter(x => x && x.price > 0 && x.href && !seen.has(x.href) && seen.add(x.href)).slice(0, 4);
   if (rows.length < 2) return '';
   if (!dn) return '<h3 style="margin:18px 0 6px;font-size:15px">다른 판매처에서 바로 보기</h3><div class="tbl"><table><thead><tr><th>판매처</th><th class="r">가격</th><th class="r"></th></tr></thead><tbody>'
-    + rows.map(x => '<tr><td>' + esc(x.mall || '판매처') + '</td><td class="r">' + won(x.price) + '</td><td class="r"><a href="' + esc(x.href) + '" target="_blank" rel="nofollow sponsored noopener">보기 ↗</a></td></tr>').join('')
+    + rows.map(x => '<tr><td>' + esc(x.mall || '판매처') + '</td><td class="r">' + won(x.price) + '</td><td class="r"><a href="' + esc(x.href) + '" target="_blank" rel="nofollow sponsored noopener" class="go">보기 ↗</a></td></tr>').join('')
     + '</tbody></table></div><p class="note">' + (d.hcompAt ? dateTime(d.hcompAt) + '에 ' : '') + '판매처마다 보여 준 가격이에요. 배송비가 들어 있거나, 옵션에 따라 달라질 수 있어요. 바로 갈 수 있는 판매처만 골랐어요. 이 링크로 구매하시면 핫딜베스트가 일정액의 수수료를 받아요.</p>';
   const ship = x => x.ship === 0 ? '무료' : x.ship > 0 ? won(x.ship) : '–';
   return '<h3 style="margin:18px 0 6px;font-size:15px">다른 판매처에서 바로 보기</h3><div class="tbl"><table><thead><tr><th>판매처</th><th class="r">가격</th><th class="r">배송비</th><th class="r"></th></tr></thead><tbody>'
-    + rows.map(x => '<tr><td>' + esc(x.mall || '판매처') + '</td><td class="r">' + won(x.price) + '</td><td class="r">' + ship(x) + '</td><td class="r"><a href="' + esc(x.href) + '" target="_blank" rel="nofollow sponsored noopener">보기 ↗</a></td></tr>').join('')
+    + rows.map(x => '<tr><td>' + esc(x.mall || '판매처') + '</td><td class="r">' + won(x.price) + '</td><td class="r">' + ship(x) + '</td><td class="r"><a href="' + esc(x.href) + '" target="_blank" rel="nofollow sponsored noopener" class="go">보기 ↗</a></td></tr>').join('')
     + '</tbody></table></div><p class="note">보낸 때 함께 확인한 가격이라 지금은 다를 수 있어요. 바로 갈 수 있는 판매처만 골랐어요. 이 링크로 구매하시면 핫딜베스트가 일정액의 수수료를 받아요.</p>';
 };
 const compsTable = d => {
