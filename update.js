@@ -7,6 +7,7 @@
 // 같은 상품을 며칠 뒤 다시 보내면 새 발송으로 바꾸고, 이전 발송은 earlier 에 남긴다 (10/19 치킨윙봉: 10/2 기록에 묶여 목록에 안 올라왔다).
 'use strict';
 const fs = require('fs'), path = require('path');
+const { pick } = require('./same.js');
 const RAW = 'https://raw.githubusercontent.com/wowplus1/hotdeal-feed/main/';
 const API = 'https://api.github.com/repos/wowplus1/hotdeal-feed/contents/';
 const FB = 'https://hotdeal-feed-default-rtdb.asia-southeast1.firebasedatabase.app/feed/items.json';
@@ -73,9 +74,24 @@ async function read(name) {
       if (w !== u) { d.webLink = w; tagged++; }
     } catch (e) { /* 다음 실행 때 다시 */ delete d.webLinkTried; }
   }
+  // 다른 판매처 (11/5) — 다나와 판매처 목록(sellers)이 없는 딜만. hotdeal.best 상세 「가격 비교」 칸과 같은 자료다.
+  // 같은 상품만 남기는 기준은 same.js. 가격은 받은 때 값이라 hcompAt 에 시각을 남긴다. 한 번에 40개, 최근 딜부터
+  let hc = 0;
+  const needH = Object.values(all).filter(d => d.uid && !d.hcompTried && !(d.sellers && d.sellers.length) && d.mall !== '토스쇼핑')
+    .sort((a, b) => String(b.sentAt).localeCompare(String(a.sentAt))).slice(0, 40);
+  for (const d of needH) {
+    try {
+      const r = await fetch('https://hotdeal.best/api/price-compare?id=' + encodeURIComponent(d.uid), { headers: { 'User-Agent': 'Mozilla/5.0 (dealsite build)' }, signal: AbortSignal.timeout(15000) });
+      d.hcompTried = today;
+      if (!r.ok) continue;
+      const got = pick(d.title, ((await r.json()) || {}).items);
+      // 시각은 한국 시각 문자열로 — 사이트는 sentAt 처럼 글자를 그대로 읽는다
+      if (got.length) { d.hcomp = got; d.hcompAt = new Date(Date.now() + 9 * 3600e3).toISOString().replace('Z', '+09:00'); hc++; }
+    } catch (e) { delete d.hcompTried; }
+  }
   fs.writeFileSync(F, JSON.stringify(all));
   // 깃허브 액션에 바뀐 게 있는지 알린다. 없으면 페이지를 다시 만들지 않는다
-  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `changed=${added + promoted + resent + tagged > 0}
+  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `changed=${added + promoted + resent + tagged + hc > 0}
 `);
-  console.log(`새 딜 ${added} · 카톡 발송으로 바뀐 것 ${promoted} · 다시 보낸 것 ${resent} · 사이트 꼬리표 ${tagged}/${need.length} · 전체 ${Object.keys(all).length}`);
+  console.log(`새 딜 ${added} · 카톡 발송으로 바뀐 것 ${promoted} · 다시 보낸 것 ${resent} · 사이트 꼬리표 ${tagged}/${need.length} · 다른 판매처 ${hc}/${needH.length} · 전체 ${Object.keys(all).length}`);
 })().catch(e => { console.error('오류:', e.message); process.exit(1); });

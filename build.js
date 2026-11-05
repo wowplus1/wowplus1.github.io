@@ -534,12 +534,27 @@ const sellerHref = s => {
   if (/^GS ?(SHOP|샵)$/i.test(n)) return /^[0-9]{6,12}$/.test(id) ? lp('gseshop', 'https://www.gsshop.com/prd/prd.gs?prdid=' + id) : '';
   return '';
 };
+// 상품 주소로 우리 링크 (hotdeal.best 가격비교 자료용) — 주소의 쇼핑몰마다 링크프라이스 광고주 이름, G마켓은 에디 틀. 모르는 주소는 빈칸
+const urlHref = raw => {
+  let x; try { x = new URL(raw); } catch (e) { return ''; }
+  if (x.protocol !== 'https:') return '';
+  const h = x.hostname, lp = m => 'https://click.linkprice.com/click.php?m=' + m + '&a=A100702842&l=9999&l_cd1=3&l_cd2=0&tu=' + encodeURIComponent(raw) + '&u_id=hotdealbest_web';
+  if (/(^|\.)gmarket\.co\.kr$/.test(h)) { const g = x.searchParams.get('goodscode') || x.searchParams.get('goodsCode'); return /^[0-9]{6,12}$/.test(g || '') ? 'https://ad0981.kr/link/2463553347?gmarket2=' + g : ''; }
+  const M = [[/(^|\.)11st\.co\.kr$/, '11st'], [/(^|\.)auction\.co\.kr$/, 'auction'], [/(^|\.)lotteon\.com$/, 'lotteon'], [/(^|\.)ssg\.com$/, 'emart'], [/(^|\.)gsshop\.com$/, 'gseshop'],
+    [/(^|\.)lotteimall\.com$/, 'woori'], [/(^|\.)nsmall\.com$/, 'nsseshop'], [/(^|\.)shinsegaetvshopping\.com$/, 'ssglive'], [/(^|\.)halfclub\.com$/, 'halfclub1']];
+  for (const [re, m] of M) if (re.test(h)) return lp(m);
+  return '';
+};
 // 바로 갈 수 있는 판매처만, 4곳까지. 2곳이 안 되면 안 그린다(위 비교 상자와 같은 말이 된다)
+// 다나와 판매처 목록(sellers, 보낸 때 · 배송비 따로)이 있으면 그것만, 없으면 hotdeal.best 가격비교(hcomp, 받은 때 · 판매처가 보여 준 값)
 const sellersTable = d => {
-  const seen = new Set();
-  const rows = (Array.isArray(d.sellers) ? d.sellers : []).filter(x => x && x.price > 0)
-    .map(x => Object.assign({}, x, { href: sellerHref(x) })).filter(x => x.href && !seen.has(x.href) && seen.add(x.href)).slice(0, 4);
+  const seen = new Set(), dn = Array.isArray(d.sellers) && d.sellers.length;
+  const src = dn ? d.sellers.map(x => Object.assign({}, x, { href: sellerHref(x) })) : (Array.isArray(d.hcomp) ? d.hcomp : []).map(x => Object.assign({}, x, { href: urlHref(x.url) }));
+  const rows = src.filter(x => x && x.price > 0 && x.href && !seen.has(x.href) && seen.add(x.href)).slice(0, 4);
   if (rows.length < 2) return '';
+  if (!dn) return '<h3 style="margin:18px 0 6px;font-size:15px">다른 판매처에서 바로 보기</h3><div class="tbl"><table><thead><tr><th>판매처</th><th class="r">가격</th><th class="r"></th></tr></thead><tbody>'
+    + rows.map(x => '<tr><td>' + esc(x.mall || '판매처') + '</td><td class="r">' + won(x.price) + '</td><td class="r"><a href="' + esc(x.href) + '" target="_blank" rel="nofollow sponsored noopener">보기 ↗</a></td></tr>').join('')
+    + '</tbody></table></div><p class="note">' + (d.hcompAt ? dateTime(d.hcompAt) + '에 ' : '') + '판매처마다 보여 준 가격이에요. 배송비가 들어 있거나, 옵션에 따라 달라질 수 있어요. 바로 갈 수 있는 판매처만 골랐어요. 이 링크로 구매하시면 핫딜베스트가 일정액의 수수료를 받아요.</p>';
   const ship = x => x.ship === 0 ? '무료' : x.ship > 0 ? won(x.ship) : '–';
   return '<h3 style="margin:18px 0 6px;font-size:15px">다른 판매처에서 바로 보기</h3><div class="tbl"><table><thead><tr><th>판매처</th><th class="r">가격</th><th class="r">배송비</th><th class="r"></th></tr></thead><tbody>'
     + rows.map(x => '<tr><td>' + esc(x.mall || '판매처') + '</td><td class="r">' + won(x.price) + '</td><td class="r">' + ship(x) + '</td><td class="r"><a href="' + esc(x.href) + '" target="_blank" rel="nofollow sponsored noopener">보기 ↗</a></td></tr>').join('')
@@ -894,7 +909,7 @@ add('/', kst(deals[0].sentAt).ymd);
 const CLIENT = [
   `var DISCLOSURE = ${JSON.stringify(DISCLOSURE)}, HIST_TERM = ${JSON.stringify(HIST_TERM)}, SRC = ${JSON.stringify(SRC)};`,
   'var sameItems = function () { return []; };',   // 지난 기록은 정식 페이지에서
-  ...Object.entries({ esc, won, kst, dateKo, dateTime, dateShort, noteKo, disclosureFor, buyLink, niceStep, lineChart, trendChart, sellerHref, sellersTable, compsTable, storyBox, dealTop })
+  ...Object.entries({ esc, won, kst, dateKo, dateTime, dateShort, noteKo, disclosureFor, buyLink, niceStep, lineChart, trendChart, sellerHref, urlHref, sellersTable, compsTable, storyBox, dealTop })
     .map(([k, f]) => `var ${k} = ${f.toString()};`),
 ].join('\n');
 write('new/index.html', page({ title: `새 딜 - ${SITE}`, desc: '방금 고른 핫딜', canon: '/new/', noindex: true,
