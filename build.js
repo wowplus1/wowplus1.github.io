@@ -273,7 +273,7 @@ ${body}
 </main>
 <div class="wrap foot"><footer><span>가격은 핫딜베스트가 확인한 때 기준이라, 판매처 사정에 따라 언제든 바뀔 수 있어요. 「다른 곳」 가격은 그때 함께 확인한 다른 판매처 가격이에요.</span>
 <span>일부 링크는 제휴 링크라서, 쇼핑몰마다 고지 문구를 함께 적어요.</span>
-<span>운영 주식회사 와우플러스 · <a href="https://hotdeal.best/?utm_source=${SRC}">hotdeal.best</a></span></footer></div>
+<span>운영 주식회사 와우플러스 · <a href="https://hotdeal.best/?utm_source=${SRC}">hotdeal.best</a> · <a href="/about/">핫딜베스트 소개</a></span></footer></div>
 <div class="bar">${ctaBtn}</div>
 </body></html>`;
 
@@ -611,7 +611,7 @@ const storyBox = d => {
     r && r.count >= 100 ? `상품평은 ${Number(r.count).toLocaleString('ko-KR')}개, 평균 ${r.score}점이에요${r.low > 0 ? `(낮은 별점 ${Number(r.low).toLocaleString('ko-KR')}개)` : ''}.` : ''].filter(Boolean).join(' ');
   if (more) P.push(more);
   const spec = Array.isArray(d.spec) ? d.spec.filter(Boolean) : [];
-  return `<section class="about story"><h2>이 가격, 얼마나 싼 거예요?</h2>${P.map(p => `<p>${p}</p>`).join('')}
+  return `<section class="about story"><h2>이 가격, 얼마나 싼 거예요?</h2>${P.map(p => `<p>${p}</p>`).join('')}<p class="note"><a href="/about/">핫딜베스트가 딜을 고르는 기준 →</a></p>
 ${sellersTable(d) || compsTable(d)}${trendChart(d)}
 ${spec.length ? `<h3 style="margin:18px 0 6px;font-size:15px">이런 상품이에요</h3><ul class="chips specs">${spec.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="note">제조사가 적은 내용이에요.</p>` : ''}
 ${buyLink(d) && (P.length >= 4 || sellersTable(d) || compsTable(d) || trendChart(d)) ? `<div class="stack again">${buyLink(d)}</div>` : ''}</section>`;
@@ -907,12 +907,38 @@ ${ctaBtn}${assure}
 </div><div class="pile" aria-hidden="true">${pile.map((d, i) => `<img src="${esc(d.image)}" alt="" referrerpolicy="no-referrer" style="left:${POS[i][0]}px;top:${POS[i][1]}px;transform:rotate(${POS[i][2]}deg);z-index:${i % 3 + 1}">`).join('')}</div></section>
 ${sbox()}
 <h2>방금 보낸 딜 <small id="livetag" class="livetag">실시간</small> <small><a href="/deals/">전체 ${deals.length}개 →</a></small></h2><ul class="grid" id="recent">${deals.slice(0, 100).map(card).join('')}</ul>
-<section class="why"><h2>핫딜 가격은 오래 가지 않아요</h2>${flow}<p class="note">위 기록은 보낸 때의 가격이에요. 지금 들어가면 이미 끝났을 수 있어서, 싸게 뜬 순간 카톡으로 보내 드려요.</p></section>
+<section class="why"><h2>핫딜 가격은 오래 가지 않아요</h2>${flow}<p class="note">위 기록은 보낸 때의 가격이에요. 지금 들어가면 이미 끝났을 수 있어서, 싸게 뜬 순간 카톡으로 보내 드려요. <a href="/about/">딜을 고르는 기준 보기 →</a></p></section>
 <h2>분류별로 보기 <small><a href="/c/">전체 보기 →</a></small></h2><ul class="chips">${CATL.map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}</em></a></li>`).join('')}</ul>
 <h2>품목별 가격 기록 보기 <small><a href="/k/">전체 보기 →</a></small></h2><ul class="chips">${KW.slice(0, 36).map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>
 <h2>쇼핑몰별로 보기</h2><ul class="chips">${MALLS.map(m => `<li><a href="${url('mall', m)}">${esc(m)} <em>${byMall[m].length}</em></a></li>`).join('')}</ul>
 ${joinPlain}${liveScript(deals.map(d => String(d.uid)))}` }));
 add('/', kst(deals[0].sentAt).ymd);
+
+// 소개 — 누가, 어떤 기준으로 고르는지(네이버 「콘텐츠 작성시 권장 사항」 전문성·투명성, 11/10 사장님 승인). 연락처 줄은 넣지 않음(사장님 결정).
+// 숫자는 지금 돌아가는 기준 그대로: 카톡 20%(run.bat --rate-floor 20) · 사이트 전용 10%(webFloor) · 발송 7~22시. 데이터 출처 이름은 쓰지 않는다
+write('about/index.html', page({ title: `핫딜베스트 소개 · 딜을 고르는 기준 - ${SITE}`, desc: '핫딜베스트는 주식회사 와우플러스가 운영해요. 다른 판매처보다 20% 이상 쌀 때만 카톡방으로 보내고, 확인한 시각의 가격을 기록으로 남겨요.', canon: '/about/',
+  crumbs: [['홈', '/'], ['소개', '/about/']],
+  ld: { '@context': 'https://schema.org', '@type': 'AboutPage', name: `핫딜베스트 소개`, url: BASE + '/about/', publisher: { '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/' } },
+  body: `<h1>핫딜베스트는 이렇게 골라요</h1>
+<section class="about"><h2>누가 운영하나요</h2><p>핫딜베스트는 <b>주식회사 와우플러스</b>가 운영해요. 쇼핑몰에 싸게 뜬 생필품·식품을 찾아서, 정말 싼지 다른 판매처 가격과 비교한 뒤 카카오톡 오픈채팅방으로 보내 드려요. 이 사이트는 그동안 보낸 딜과 가격을 모아 둔 기록이에요.</p></section>
+<section class="about"><h2>카톡방에는 이럴 때만 보내요</h2><ol>
+<li><b>비교할 수 있어야 해요.</b> 같은 규격의 상품을 다른 판매처에서도 파는지 찾아보고, 비교할 상품이 없으면 보내지 않아요.</li>
+<li><b>다른 판매처보다 20% 이상 싸야 해요.</b> 배송비까지 확인할 수 있으면 배송비를 넣고 비교해요.</li>
+<li><b>이상한 할인은 걸러요.</b> 구성이 다른 묶음 상품, 옵션 중 제일 싼 것만 내세운 가격, 지나치게 큰 할인율은 빼요.</li>
+<li><b>아침 7시부터 밤 10시까지만 보내요.</b> 밤에 뜬 딜은 이 사이트에만 올려요.</li></ol></section>
+<section class="about"><h2>사이트에만 올리는 딜도 있어요</h2><p>카톡방 기준(20%)에는 조금 못 미치지만 다른 곳보다 10% 넘게 싼 딜, 그리고 PC 용품·가전·해외 직구 상품은 카톡방 대신 이 사이트에만 올려요. 상세 페이지에 「사이트에만 올린 딜」이라고 표시해 둬요.</p></section>
+<section class="about"><h2>무엇을 비교하나요</h2><ul>
+<li>같은 규격 상품을 파는 다른 판매처의 가격과 배송비</li>
+<li>지난 1년 동안 달마다 가장 낮았던 시세</li>
+<li>개당·100g당·L당 같은 단가</li>
+<li>같은 상품이 전에 얼마에 떴는지, 얼마나 자주 뜨는지</li></ul></section>
+<section class="about"><h2>왜 지난 가격을 남겨 두나요</h2><p>핫딜은 쿠폰이나 재고에 따라 금방 끝나요. 그래서 상세 페이지의 가격은 지금 가격이 아니라 <b>우리가 확인한 그 시각의 가격</b>이에요. 페이지마다 확인한 날짜와 시각을 적어 두었으니, 사기 전에는 판매처에서 지금 가격을 꼭 확인해 주세요.</p><p>그래도 기록을 남기는 건, 같은 상품이 언제 얼마까지 내려갔는지 알면 「지금 사도 될지, 다음을 기다릴지」 판단하는 데 도움이 되기 때문이에요.</p></section>
+<section class="about"><h2>하지 않는 것</h2><ul>
+<li>「지금 최저가」라고 단정하지 않아요. 우리가 비교한 판매처 안에서, 확인한 그 시각 기준으로만 말해요.</li>
+<li>할인율을 확인하지 못한 딜에는 할인율을 붙이지 않아요.</li></ul></section>
+<section class="about"><h2>수수료에 대해</h2><p>이 사이트와 카톡방의 구매 링크 중 일부는 제휴 링크예요(쿠팡 파트너스, 링크프라이스 등). 이 링크로 사시면 핫딜베스트가 판매처로부터 일정액의 수수료를 받아요. 쇼핑몰마다 정해진 고지 문구를 구매 버튼 옆에 함께 적어 두고 있어요.</p></section>
+${joinPlain}` }));
+add('/about/', kst(deals[0].sentAt).ymd);
 
 // 방금 들어온 딜의 상세. 정식 페이지가 만들어지기 전(보통 몇 분)에만 쓴다.
 // 정식 페이지와 같은 함수(dealTop·storyBox 와 그 재료)를 그대로 브라우저에 넘겨 같은 모양으로 그린다 — 따로 짜면 둘이 어긋난다.
