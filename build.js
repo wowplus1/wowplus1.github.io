@@ -997,8 +997,10 @@ const rssBody = d => {
     .replace(/<(\/?)([a-z0-9]+)\b([^>]*)>/gi, (all, sl, tag, at) => {
       tag = tag.toLowerCase(); if (!RSS_KEEP.has(tag)) return tag === 'div' || tag === 'section' ? '\n' : ' ';
       if (sl) return `</${tag}>`;
-      if (tag === 'a') { const x = at.match(/href="([^"]+)"/); return x ? `<a href="${abs(x[1])}">` : '<a>'; }
-      if (tag === 'img') { const s = at.match(/src="([^"]+)"/), a = at.match(/alt="([^"]*)"/); return s ? `<img src="${abs(s[1])}" alt="${a ? a[1] : ''}">` : ''; }
+      // 네이버 RSS 제출 주의사항 「피드내 모든 URL의 도메인은 소유확인 된 사이트와 동일」 — 바깥 주소(판매처 링크·판매처 사진)는 RSS 에선 뺀다(글자는 남김). 사이트 페이지는 그대로
+      const own = u => abs(u).startsWith(BASE + '/');
+      if (tag === 'a') { const x = at.match(/href="([^"]+)"/); return x && own(x[1]) ? `<a href="${abs(x[1])}">` : '<a>'; }
+      if (tag === 'img') { const s = at.match(/src="([^"]+)"/), a = at.match(/alt="([^"]*)"/); return s && own(s[1]) ? `<img src="${abs(s[1])}" alt="${a ? a[1] : ''}">` : ''; }
       return `<${tag}>`;
     }).replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim();
   return body.length > 200 ? `<![CDATA[${body.replace(/]]>/g, ']]&gt;')}]]>` : short;
