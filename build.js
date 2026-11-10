@@ -112,7 +112,7 @@ const CSS = `:root{
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.65 var(--font);letter-spacing:-.01em;word-break:keep-all;overflow-wrap:anywhere;-webkit-font-smoothing:antialiased}
 a{color:inherit}img{max-width:100%}
-.wrap{max-width:960px;margin:0 auto;padding:0 16px 132px}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px 132px}main.wrap{padding-bottom:0}
 /* 머리 */
 .top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .top .in{max-width:960px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -249,7 +249,8 @@ const assure = '<p class="assure"><span>무료</span><span>알림 꺼 둬도 OK<
 // 핫딜의 핵심: 가격은 금방 돌아간다 → 기록을 볼 땐 늦다 → 싸게 뜬 순간 카톡으로 받아야 산다 (10/22 사장님 요청)
 const flow = `<ol class="flow"><li><b>싸게 뜬다</b><span>쿠폰·타임특가로 잠깐 가격이 내려가요</span></li><li><b>금방 끝난다</b><span>쿠폰이 다 쓰이거나 재고가 빠지면 원래 가격으로 돌아가요</span></li><li><b>먼저 본 사람이 산다</b><span>싸게 뜬 순간 카톡으로 알려드려요</span></li></ol>`;
 const joinPlain = `<section class="join"><h3>싸게 뜬 순간, 카톡으로 받아 보세요</h3><p>다른 판매처 가격과 비교해서 괜찮을 때만 바로 보내드려요.</p>${ctaBtn}${assure}</section>`;
-const join = `<section class="join"><h3>핫딜 가격은 오래 가지 않아요</h3>${flow}<p>싸게 뜬 생필품을 다른 판매처 가격과 비교해서, 괜찮을 때만 바로 보내드려요.</p>${ctaBtn}${assure}</section>`;
+// 11/10 상세·품목·분류 아래 상자는 짧은 안내로 — 매 쪽 같은 3단계 설명이 글의 큰 몫을 차지해서(네이버 「저품질 콘텐츠 대량 생성」). 3단계(flow)는 홈 .why 에만
+const join = joinPlain;
 
 const page = ({ title, desc, canon, body, crumbs, img, noindex, ld }) => `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -269,10 +270,10 @@ ${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ''}
 <main class="wrap">
 ${crumbs ? `<nav class="crumb" aria-label="현재 위치">${crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="${c[1]}">${esc(c[0])}</a>` : `<span>${esc(c[0])}</span>`).join(' › ')}</nav>` : ''}
 ${body}
-<footer><span>가격은 핫딜베스트가 확인한 때 기준이라, 판매처 사정에 따라 언제든 바뀔 수 있어요. 「다른 곳」 가격은 그때 함께 확인한 다른 판매처 가격이에요.</span>
-<span>일부 링크는 제휴 링크라서, 쇼핑몰마다 고지 문구를 함께 적어요.</span>
-<span>운영 주식회사 와우플러스 · <a href="https://hotdeal.best/?utm_source=${SRC}">hotdeal.best</a></span></footer>
 </main>
+<div class="wrap foot"><footer><span>가격은 핫딜베스트가 확인한 때 기준이라, 판매처 사정에 따라 언제든 바뀔 수 있어요. 「다른 곳」 가격은 그때 함께 확인한 다른 판매처 가격이에요.</span>
+<span>일부 링크는 제휴 링크라서, 쇼핑몰마다 고지 문구를 함께 적어요.</span>
+<span>운영 주식회사 와우플러스 · <a href="https://hotdeal.best/?utm_source=${SRC}">hotdeal.best</a></span></footer></div>
 <div class="bar">${ctaBtn}</div>
 </body></html>`;
 
@@ -555,11 +556,11 @@ const sellersTable = d => {
   if (rows.length < 2) return '';
   if (!dn) return '<h3 style="margin:18px 0 6px;font-size:15px">다른 판매처에서 바로 보기</h3><div class="tbl"><table><thead><tr><th>판매처</th><th class="r">가격</th><th class="r"></th></tr></thead><tbody>'
     + rows.map(x => '<tr><td>' + esc(x.mall || '판매처') + '</td><td class="r">' + won(x.price) + '</td><td class="r"><a href="' + esc(x.href) + '" target="_blank" rel="nofollow sponsored noopener" class="go">보기 ↗</a></td></tr>').join('')
-    + '</tbody></table></div><p class="note">' + (d.hcompAt ? dateTime(d.hcompAt) + '에 ' : '') + '판매처마다 보여 준 가격이에요. 배송비가 들어 있거나, 옵션에 따라 달라질 수 있어요. 바로 갈 수 있는 판매처만 골랐어요. 이 링크로 구매하시면 핫딜베스트가 일정액의 수수료를 받아요.</p>';
+    + '</tbody></table></div><p class="note">' + (d.hcompAt ? dateTime(d.hcompAt) + '에 ' : '') + '판매처별 가격(배송비·옵션에 따라 다를 수 있어요). 이 링크로 구매하시면 핫딜베스트가 일정액의 수수료를 받아요.</p>';
   const ship = x => x.ship === 0 ? '무료' : x.ship > 0 ? won(x.ship) : '–';
   return '<h3 style="margin:18px 0 6px;font-size:15px">다른 판매처에서 바로 보기</h3><div class="tbl"><table><thead><tr><th>판매처</th><th class="r">가격</th><th class="r">배송비</th><th class="r"></th></tr></thead><tbody>'
     + rows.map(x => '<tr><td>' + esc(x.mall || '판매처') + '</td><td class="r">' + won(x.price) + '</td><td class="r">' + ship(x) + '</td><td class="r"><a href="' + esc(x.href) + '" target="_blank" rel="nofollow sponsored noopener" class="go">보기 ↗</a></td></tr>').join('')
-    + '</tbody></table></div><p class="note">보낸 때 함께 확인한 가격이라 지금은 다를 수 있어요. 바로 갈 수 있는 판매처만 골랐어요. 이 링크로 구매하시면 핫딜베스트가 일정액의 수수료를 받아요.</p>';
+    + '</tbody></table></div><p class="note">보낸 때 함께 확인한 가격이에요. 이 링크로 구매하시면 핫딜베스트가 일정액의 수수료를 받아요.</p>';
 };
 const compsTable = d => {
   const cs = Array.isArray(d.comps) ? d.comps.filter(c => c && c.price > 0).slice(0, 4) : [];
@@ -663,7 +664,7 @@ ${d.baselineNote ? `<p>${esc(noteKo(d.baselineNote))} · 보낸 때 함께 확�
 <h1>${esc(d.title)}</h1>
 <div class="price"><b>${won(d.price)}</b>${d.saving ? `<span class="save">다른 곳보다 ${d.saving}% 쌈</span>` : ''}${d.hist && d.hist.cheaper ? `<span class="best">${HIST_TERM[d.hist.months] || d.hist.months + '개월'} 중 최저</span>` : ''}</div>
 ${cmp}
-<p class="warn"><b>⚠ ${dateTime(d.sentAt)} 기준 가격이에요<span class="ago" data-t="${esc(d.sentAt)}"></span></b><span>가격이 바뀌었다면 이미 끝난 딜이에요. 사기 전에 판매처 가격을 꼭 확인해 주세요.</span></p>
+<p class="warn"><b>⚠ ${dateTime(d.sentAt)} 기준 가격이에요<span class="ago" data-t="${esc(d.sentAt)}"></span></b><span>지금 가격은 판매처에서 확인해 주세요.</span></p>
 <div class="stack">${buyLink(d)}</div>
 </div></div>`;
 };
@@ -712,10 +713,12 @@ ${sameMall.length ? `<h2>${esc(d.mall)}에서 최근에 뜬 딜</h2>${grid(sameM
 e.textContent=' · '+(m<5?'방금 전':m<60?Math.floor(m)+'분 전':m<1440?Math.floor(m/60)+'시간 전':Math.floor(m/1440)+'일 전');})();</script>`;
   // 그래프가 둘 다 있을 때만 ①② 번호를 단다 (하나뿐인데 ① 이 붙어 있었다)
   const bodyN = body.includes('② 핫딜베스트가 고른') ? body.replace('>이 상품의 1년 시세</h3>', '>① 이 상품의 1년 시세</h3>') : body;
-  // 제목: 「상품 최저가 2,600원 (개당 520원)」. 단가는 위 상자에 보이는 값(피드 unit)이 먼저, 없으면 같은 품목 순위표의 단가
+  // 제목: 「상품 2,600원 (개당 520원) · 11/10 쿠팡 핫딜」. 단가는 위 상자에 보이는 값(피드 unit)이 먼저, 없으면 같은 품목 순위표의 단가
+  // 11/10 「최저가」 뺌 — 지난 가격을 지금 최저가처럼 읽히게 하지 않는다(네이버 스팸 정책 낚시성·키워드 남용, 사장님 결정). 날짜·판매처로 그때 가격임을 드러낸다
   const tUnit = d.unit && d.unit.value > 0 && d.unit.label ? `${d.unit.label} ${won(d.unit.value)}` : ug ? `${ug.sc.label} ${unitWon(d, ug.sc)}` : '';
+  const tWhen = kst(d.sentAt);
   // 네이버 SEO 기본 가이드 「title 텍스트 길이 확인필요」 — 전체가 80자를 넘으면 상품명만 띄어쓰기 자리에서 줄인다(h1·본문은 전체 이름 그대로)
-  const tTail = ` ${d.baseline > d.price ? '최저가 ' : ''}${won(d.price)}${tUnit ? ` (${tUnit})` : ''}${d.baseline > d.price ? '' : ' 핫딜'} - ${SITE}`;
+  const tTail = ` ${won(d.price)}${tUnit ? ` (${tUnit})` : ''} · ${tWhen ? `${tWhen.mo}/${tWhen.d} ` : ''}${d.mall || ''} 핫딜 - ${SITE}`.replace(/\s+핫딜/, ' 핫딜');
   const tRoom = 80 - tTail.length;
   let tName = d.title;
   if (tName.length > tRoom) { const cut = tName.slice(0, tRoom - 1); const sp = cut.lastIndexOf(' '); tName = (sp > tRoom * 0.5 ? cut.slice(0, sp) : cut).replace(/[\s,·/+*(-]+$/, '') + '…'; }
@@ -765,9 +768,11 @@ ${arr.map(d => `<tr${d === min ? ' class="low"' : ''}><td>${dateTime(d.sentAt)}<
 </tbody></table></div>
 ${join}
 <h2>${esc(w)} 딜 한눈에 보기</h2>${grid(arr)}`;
-  write(`k/${w}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${w} 핫딜 기록`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) }, title: `${w} 최저가·핫딜 기록${usc ? ` (${usc.label} 최저 ${unitWon(uarr[0], usc)})` : ''} - ${SITE}`, desc: `핫딜베스트가 고른 ${w} 핫딜 ${arr.length}건과 날짜별 가격. 가장 낮았던 가격 ${won(min.price)}.` + (usc ? ` ${usc.label} 가장 쌌던 가격 ${unitWon(uarr[0], usc)}.` : ''),
+  // 11/10 딜 6개 미만 품목은 검색 제외·사이트맵 제외(사람은 그대로 봄) — 얇은 틀 페이지를 대량으로 내지 않는다(네이버 스팸 정책). 기준 6 = 분류(c/) 기준과 같음
+  const kThin = arr.length < 6;
+  write(`k/${w}/index.html`, page({ noindex: kThin, ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${w} 핫딜 기록`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) }, title: `${w} 핫딜 가격 기록${usc ? ` (${usc.label} 최저 ${unitWon(uarr[0], usc)})` : ''} - ${SITE}`, desc: `핫딜베스트가 고른 ${w} 핫딜 ${arr.length}건과 날짜별 가격. 가장 낮았던 가격 ${won(min.price)}.` + (usc ? ` ${usc.label} 가장 쌌던 가격 ${unitWon(uarr[0], usc)}.` : ''),
     canon: url('k', w), body, img: min.image, crumbs: [['홈', '/'], ['품목별', '/k/'], [w, url('k', w)]] }));
-  add(url('k', w), kst(arr[0].sentAt).ymd);
+  if (!kThin) add(url('k', w), kst(arr[0].sentAt).ymd);
 }
 write('k/index.html', page({ title: `품목별 핫딜 기록 - ${SITE}`, desc: '브랜드·품목별로 핫딜베스트가 고른 핫딜과 가격 기록을 모았어요.', canon: '/k/',
   crumbs: [['홈', '/'], ['품목별', '/k/']],
@@ -814,7 +819,7 @@ ${months.map(k => { const a = byMonth[k], sv = a.filter(x => x.saving > 0), b = 
   const malls = Object.keys(mc).sort((a, b) => mc[b] - mc[a]);
   const mallLine = malls.length >= 2 ? `<p>판매처는 ${malls.slice(0, 4).map(m => `${esc(m)} ${mc[m]}개`).join(', ')}${malls.length > 4 ? ' 순이에요' : '예요'}.</p>` : '';
   const fq = freqOf(appearOf(arr));
-  const body = `<h1>${esc(c)} 핫딜·최저가 모음</h1>
+  const body = `<h1>${esc(c)} 핫딜 모음</h1>
 <p class="lead">핫딜베스트가 다른 곳 가격과 비교해서 고른 <b>${esc(c)}</b> 딜, 지금까지 <b>${arr.length}개</b>예요.${d30 ? ` 최근 한 달 사이에만 ${d30}개가 떴어요.` : ''}</p>
 <p class="lead">${avg ? `같은 때 다른 곳보다 평균 <span class="hl">${avg}%</span> 쌌어요. ` : ''}${fq.gap ? `평균 <b>${fq.gap}일</b>에 한 번꼴로 떴고, ` : ''}가격은 뜬 때 기준이라 지금은 다를 수 있어요.</p>
 ${kws.length ? `<h2>${esc(c)} 중에 자주 뜬 건?</h2><ul class="chips">${kws.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${kc[w]}</em></a></li>`).join('')}</ul>` : ''}
@@ -825,7 +830,7 @@ ${monthBox}
 <h2>최근에 뜬 ${esc(c)} 딜 <small>${arr.length}개</small></h2>${grid(arr)}
 ${join}`;
   write(`c/${c}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${c} 핫딜 모음`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) },
-    title: `${c} 최저가·핫딜 모음 - ${SITE}`, desc: `${c} 핫딜 ${arr.length}개. 쿠팡·지마켓 등에서 다른 곳보다 싸게 뜬 ${c} 가격 기록을 날짜별로 모았어요.`,
+    title: `${c} 핫딜 모음 - ${SITE}`, desc: `${c} 핫딜 ${arr.length}개. 쿠팡·지마켓 등에서 다른 곳보다 싸게 뜬 ${c} 가격 기록을 날짜별로 모았어요.`,
     canon: url('c', c), body, img: (arr.find(d => d.image) || {}).image, crumbs: [['홈', '/'], ['분류', '/c/'], [c, url('c', c)]] }));
   add(url('c', c), kst(arr[0].sentAt).ymd);
 }
