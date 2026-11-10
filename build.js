@@ -887,7 +887,7 @@ const POS = [[8, 30, -9], [118, 6, 6], [228, 34, -4], [40, 104, 7], [158, 92, -7
 write('index.html', page({ ld: [
   { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE, alternateName: '핫딜베스트', url: BASE + '/', inLanguage: 'ko',
     potentialAction: { '@type': 'SearchAction', target: BASE + '/search/?q={search_term_string}', 'query-input': 'required name=search_term_string' } },
-  { '@context': 'https://schema.org', '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/', logo: BASE + '/logo.png', sameAs: ['https://hotdeal.best/'] }], title: `생필품 핫딜, 다른 곳 가격과 비교해 카톡으로 - ${SITE}`, desc: '싸게 뜬 생필품·식품 핫딜을 다른 곳 가격과 비교해서 카카오톡 오픈채팅으로 보내 드려요. 지금까지 보낸 딜과 품목별 가격 기록도 볼 수 있어요.', canon: '/',
+  { '@context': 'https://schema.org', '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/', logo: BASE + '/logo.png', sameAs: ['https://hotdeal.best/', 'https://www.youtube.com/@hotdealbest_kr', 'https://www.instagram.com/hotdeal.best/', 'https://www.threads.com/@hotdeal.best', 'https://www.tiktok.com/@hotdealbest_kr'] }], title: `생필품 핫딜, 다른 곳 가격과 비교해 카톡으로 - ${SITE}`, desc: '싸게 뜬 생필품·식품 핫딜을 다른 곳 가격과 비교해서 카카오톡 오픈채팅으로 보내 드려요. 지금까지 보낸 딜과 품목별 가격 기록도 볼 수 있어요.', canon: '/',
   body: `<section class="hero"><div>
 <span class="badge"><i></i>24시간 업데이트 · 카톡방은 아침 7시 ~ 밤 10시</span>
 <h1>생필품 핫딜, <span class="hl">다른 곳 가격과 비교해서</span> 카톡으로 보내드려요</h1>
@@ -947,10 +947,28 @@ write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="htt
   urls.map(([u, m]) => `<url><loc>${BASE}${u}</loc><lastmod>${m}</lastmod></url>`).join('\n') + '\n</urlset>\n');
 // RSS — 네이버 서치어드바이저에 사이트맵과 함께 낸다. 새 글을 빨리 알아챈다
 const rfc = iso => new Date(iso).toUTCString();
+// 네이버 가이드 「최신글은 본문 전체를 포함하여 RSS 피드에」 — 방금 쓴 상세 페이지의 <main> 을 기본 태그만 남겨 싣는다
+const RSS_KEEP = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'b', 'strong', 'em', 'br', 'a', 'img']);
+const rssBody = d => {
+  const short = `${esc(d.mall)} ${won(d.price)}${d.baseline ? ' · 다른 곳 ' + won(d.baseline) + ' (' + d.saving + '% 낮음)' : ''}`;
+  let h;
+  try { h = fs.readFileSync(path.join(OUT, decodeURIComponent(dealUrl(d)).slice(1), 'index.html'), 'utf8'); } catch { return short; }
+  const m = h.match(/<main[^>]*>([\s\S]*?)<\/main>/); if (!m) return short;
+  const abs = u => /^https?:/.test(u) ? u : BASE + (u.startsWith('/') ? u : '/' + u);
+  const body = m[1].replace(/<(script|style|svg|noscript|button|form)\b[\s\S]*?<\/\1>/gi, '').replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(\/?)([a-z0-9]+)\b([^>]*)>/gi, (all, sl, tag, at) => {
+      tag = tag.toLowerCase(); if (!RSS_KEEP.has(tag)) return tag === 'div' || tag === 'section' ? '\n' : ' ';
+      if (sl) return `</${tag}>`;
+      if (tag === 'a') { const x = at.match(/href="([^"]+)"/); return x ? `<a href="${abs(x[1])}">` : '<a>'; }
+      if (tag === 'img') { const s = at.match(/src="([^"]+)"/), a = at.match(/alt="([^"]*)"/); return s ? `<img src="${abs(s[1])}" alt="${a ? a[1] : ''}">` : ''; }
+      return `<${tag}>`;
+    }).replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim();
+  return body.length > 200 ? `<![CDATA[${body.replace(/]]>/g, ']]&gt;')}]]>` : short;
+};
 write('rss.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel><title>${SITE}</title><link>${BASE}/</link><description>생필품 핫딜을 다른 판매처 가격과 비교해 고른 기록</description><language>ko</language>
 <lastBuildDate>${rfc(deals[0].sentAt)}</lastBuildDate>
-${deals.slice(0, 50).map(d => `<item><title>${esc(d.title)} ${won(d.price)}</title><link>${BASE}${dealUrl(d)}</link><guid>${BASE}${dealUrl(d)}</guid><pubDate>${rfc(d.sentAt)}</pubDate><description>${esc(d.mall)} ${won(d.price)}${d.baseline ? ' · 다른 곳 ' + won(d.baseline) + ' (' + d.saving + '% 낮음)' : ''}</description></item>`).join('\n')}
+${deals.slice(0, 50).map(d => `<item><title>${esc(d.title)} ${won(d.price)}</title><link>${BASE}${dealUrl(d)}</link><guid>${BASE}${dealUrl(d)}</guid><pubDate>${rfc(d.sentAt)}</pubDate><description>${rssBody(d)}</description></item>`).join('\n')}
 </channel></rss>
 `);
 write('.nojekyll', '');
