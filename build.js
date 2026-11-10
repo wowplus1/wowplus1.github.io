@@ -265,7 +265,7 @@ if (location.hostname === 'deal.hotdeal.best' || location.hostname === 'wowplus1
 ${crumbs ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c[0], item: BASE + c[1] })) })}</script>` : ''}
 ${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ''}
 </head><body>
-<header class="top"><div class="in"><a class="brand" href="/"><img src="/logo.png" alt="">핫딜베스트<small>카톡방</small></a><nav><a href="/c/">분류</a><a href="/k/">품목별</a><a class="sr" href="/search/" aria-label="검색"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a></nav></div></header>
+<header class="top"><div class="in"><a class="brand" href="/"><img src="/logo.png" alt="핫딜베스트 로고">핫딜베스트<small>카톡방</small></a><nav><a href="/c/">분류</a><a href="/k/">품목별</a><a class="sr" href="/search/" aria-label="검색"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a></nav></div></header>
 <main class="wrap">
 ${crumbs ? `<nav class="crumb" aria-label="현재 위치">${crumbs.map((c, i) => i < crumbs.length - 1 ? `<a href="${c[1]}">${esc(c[0])}</a>` : `<span>${esc(c[0])}</span>`).join(' › ')}</nav>` : ''}
 ${body}
@@ -276,7 +276,7 @@ ${body}
 <div class="bar">${ctaBtn}</div>
 </body></html>`;
 
-const card = d => `<li data-uid="${esc(d.uid)}"><a class="card" href="${dealUrl(d)}"><span class="ph">${d.image ? `<img src="${esc(d.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}</span><span class="body">
+const card = d => `<li data-uid="${esc(d.uid)}"><a class="card" href="${dealUrl(d)}"><span class="ph">${d.image ? `<img src="${esc(d.image)}" alt="${esc(d.title)}" loading="lazy" referrerpolicy="no-referrer">` : ''}</span><span class="body">
 <span class="m"><span class="mall">${esc(d.mall)}</span>${dateTime(d.sentAt)} ${d.web ? '확인' : '보냄'}</span><span class="t">${esc(d.title)}</span>
 <span class="p">${won(d.price)}${d.saving ? `<span class="save">${d.saving}%↓</span>` : ''}${d.baseline ? `<span class="was">${won(d.baseline)}</span>` : ''}</span></span></a></li>`;
 const grid = arr => `<ul class="grid">${arr.map(card).join('')}</ul>`;
@@ -714,7 +714,12 @@ e.textContent=' · '+(m<5?'방금 전':m<60?Math.floor(m)+'분 전':m<1440?Math.
   const bodyN = body.includes('② 핫딜베스트가 고른') ? body.replace('>이 상품의 1년 시세</h3>', '>① 이 상품의 1년 시세</h3>') : body;
   // 제목: 「상품 최저가 2,600원 (개당 520원)」. 단가는 위 상자에 보이는 값(피드 unit)이 먼저, 없으면 같은 품목 순위표의 단가
   const tUnit = d.unit && d.unit.value > 0 && d.unit.label ? `${d.unit.label} ${won(d.unit.value)}` : ug ? `${ug.sc.label} ${unitWon(d, ug.sc)}` : '';
-  const title = `${d.title} ${d.baseline > d.price ? '최저가 ' : ''}${won(d.price)}${tUnit ? ` (${tUnit})` : ''}${d.baseline > d.price ? '' : ' 핫딜'} - ${SITE}`;
+  // 네이버 SEO 기본 가이드 「title 텍스트 길이 확인필요」 — 전체가 80자를 넘으면 상품명만 띄어쓰기 자리에서 줄인다(h1·본문은 전체 이름 그대로)
+  const tTail = ` ${d.baseline > d.price ? '최저가 ' : ''}${won(d.price)}${tUnit ? ` (${tUnit})` : ''}${d.baseline > d.price ? '' : ' 핫딜'} - ${SITE}`;
+  const tRoom = 80 - tTail.length;
+  let tName = d.title;
+  if (tName.length > tRoom) { const cut = tName.slice(0, tRoom - 1); const sp = cut.lastIndexOf(' '); tName = (sp > tRoom * 0.5 ? cut.slice(0, sp) : cut).replace(/[\s,·/+*(-]+$/, '') + '…'; }
+  const title = tName + tTail;
   write(decodeURIComponent(dealUrl(d)).slice(1) + 'index.html', page({ title, desc, canon: dealUrl(d), body: bodyN, img: d.image,
     crumbs: [['홈', '/'], [d.mall, url('mall', d.mall)], [d.title, dealUrl(d)]] }));
   add(dealUrl(d), kst(d.sentAt).ymd);
@@ -857,7 +862,7 @@ ${join}
     var low = hit.reduce(function (a, b) { return b.p > 0 && b.p < a.p ? b : a; }, hit[0]);
     info.innerHTML = '「' + esc(q) + '」 딜 ' + hit.length + '개 · 제일 쌌던 가격 <b>' + won(low.p) + '</b> (' + when(low.s) + ', ' + esc(low.m) + ')';
     box.innerHTML = hit.slice(0, 60).map(function (d) {
-      return '<li><a class="card" href="' + esc(d.u) + '"><span class="ph">' + (d.i ? '<img src="' + esc(d.i) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '</span><span class="body">'
+      return '<li><a class="card" href="' + esc(d.u) + '"><span class="ph">' + (d.i ? '<img src="' + esc(d.i) + '" alt="' + esc(d.t) + '" loading="lazy" referrerpolicy="no-referrer">' : '') + '</span><span class="body">'
         + '<span class="m"><span class="mall">' + esc(d.m) + '</span>' + when(d.s) + (d.w ? ' 확인' : ' 보냄') + '</span><span class="t">' + esc(d.t) + '</span>'
         + '<span class="p">' + won(d.p) + (d.v ? '<span class="save">' + d.v + '%↓</span>' : '') + (d.b ? '<span class="was">' + won(d.b) + '</span>' : '') + '</span></span></a></li>';
     }).join('');
