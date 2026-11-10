@@ -899,7 +899,7 @@ const POS = [[8, 30, -9], [118, 6, 6], [228, 34, -4], [40, 104, 7], [158, 92, -7
 write('index.html', page({ ld: [
   { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE, alternateName: '핫딜베스트', url: BASE + '/', inLanguage: 'ko',
     potentialAction: { '@type': 'SearchAction', target: BASE + '/search/?q={search_term_string}', 'query-input': 'required name=search_term_string' } },
-  { '@context': 'https://schema.org', '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/', logo: BASE + '/logo.png', sameAs: ['https://hotdeal.best/', 'https://www.youtube.com/@hotdealbest_kr', 'https://www.instagram.com/hotdeal.best/', 'https://www.threads.com/@hotdeal.best', 'https://www.tiktok.com/@hotdealbest_kr'] }], title: `${SITE} - 생필품 딜을 다른 곳 가격과 비교해 카톡으로`, desc: '싸게 뜬 생필품·식품 핫딜을 다른 곳 가격과 비교해서 카카오톡 오픈채팅으로 보내 드려요. 지금까지 보낸 딜과 품목별 가격 기록도 볼 수 있어요.', canon: '/',
+  { '@context': 'https://schema.org', '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/', logo: BASE + '/logo.png', sameAs: ['https://hotdeal.best/', 'https://www.youtube.com/@hotdealbest_kr', 'https://www.instagram.com/hotdeal.best/', 'https://www.threads.com/@hotdeal.best', 'https://www.tiktok.com/@hotdealbest_kr'] }], title: SITE, desc: '생필품 핫딜을 다른 판매처 가격과 비교해 카톡으로 보내 드려요.', canon: '/',
   body: `<section class="hero"><div>
 <span class="badge"><i></i>24시간 업데이트 · 카톡방은 아침 7시 ~ 밤 10시</span>
 <h1>생필품 핫딜, <span class="hl">다른 곳 가격과 비교해서</span> 카톡으로 보내드려요</h1>
@@ -916,6 +916,7 @@ ${sbox()}
 ${joinPlain}${liveScript(deals.map(d => String(d.uid)))}` }));
 add('/', kst(deals[0].sentAt).ymd);
 
+// 홈 제목·설명 = 브랜드명 9자·설명 36자 (11/10 사장님 「홈만 그렇게」 — 네이버 「메인 title 은 브랜드명」·옛 사이트검색 가이드 제목 15자·설명 45자 권장, 핫딜집도 같음). 고정.
 // 소개 — 누가, 어떤 기준으로 고르는지(네이버 「콘텐츠 작성시 권장 사항」 전문성·투명성, 11/10 사장님 승인). 연락처 줄은 넣지 않음(사장님 결정).
 // 숫자는 지금 돌아가는 기준 그대로: 카톡 20%(run.bat --rate-floor 20) · 사이트 전용 10%(webFloor) · 발송 7~22시. 데이터 출처 이름은 쓰지 않는다
 write('about/index.html', page({ title: `소개 · 딜을 고르는 기준 - ${SITE}`, desc: '핫딜베스트는 주식회사 와우플러스가 운영해요. 다른 판매처보다 20% 이상 쌀 때만 카톡방으로 보내고, 확인한 시각의 가격을 기록으로 남겨요.', canon: '/about/',
