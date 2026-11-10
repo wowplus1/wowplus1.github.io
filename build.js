@@ -255,8 +255,8 @@ const join = joinPlain;
 const page = ({ title, desc, canon, body, crumbs, img, noindex, ld }) => `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(title)}</title>${noindex ? '<meta name="robots" content="noindex">' : ''}<meta name="description" content="${esc(desc)}"><link rel="canonical" href="${BASE}${canon}">
-<meta name="theme-color" content="#F7F4EE"><link rel="icon" href="/logo.png"><link rel="apple-touch-icon" href="/logo.png">
-<meta property="og:site_name" content="${SITE}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">
+<meta name="theme-color" content="#F7F4EE"><link rel="icon" href="${BASE}/logo.png"><link rel="apple-touch-icon" href="${BASE}/logo.png">
+<meta property="og:site_name" content="${SITE}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(desc)}"><meta name="twitter:image" content="${esc(img || BASE + '/logo.png')}"><meta name="twitter:domain" content="${SITE}">
 <meta property="og:type" content="website"><meta property="og:url" content="${BASE}${canon}"><meta property="og:image" content="${esc(img || BASE + '/logo.png')}">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="/style.css?v=${CSSV}">
@@ -713,12 +713,14 @@ ${sameMall.length ? `<h2>${esc(d.mall)}에서 최근에 뜬 딜</h2>${grid(sameM
 e.textContent=' · '+(m<5?'방금 전':m<60?Math.floor(m)+'분 전':m<1440?Math.floor(m/60)+'시간 전':Math.floor(m/1440)+'일 전');})();</script>`;
   // 그래프가 둘 다 있을 때만 ①② 번호를 단다 (하나뿐인데 ① 이 붙어 있었다)
   const bodyN = body.includes('② 핫딜베스트가 고른') ? body.replace('>이 상품의 1년 시세</h3>', '>① 이 상품의 1년 시세</h3>') : body;
-  // 제목: 「상품 2,600원 (개당 520원) · 11/10 쿠팡 핫딜」. 단가는 위 상자에 보이는 값(피드 unit)이 먼저, 없으면 같은 품목 순위표의 단가
+  // 제목: 「상품 2,600원 (개당 520원) · 11/10 쿠팡 - 핫딜베스트 카톡방」. 단가는 위 상자에 보이는 값(피드 unit)이 먼저, 없으면 같은 품목 순위표의 단가
   // 11/10 「최저가」 뺌 — 지난 가격을 지금 최저가처럼 읽히게 하지 않는다(네이버 스팸 정책 낚시성·키워드 남용, 사장님 결정). 날짜·판매처로 그때 가격임을 드러낸다
+  // 11/10 「핫딜」 단어도 뺌 — 브랜드(핫딜베스트) 속 한 번만(네이버 콘텐츠 마크업 「2회 이상 반복적인 키워드」). **이 형식으로 고정(사장님 결정) — 다시 바꾸지 말 것(제목 잦은 변경도 불이익 사유)**
   const tUnit = d.unit && d.unit.value > 0 && d.unit.label ? `${d.unit.label} ${won(d.unit.value)}` : ug ? `${ug.sc.label} ${unitWon(d, ug.sc)}` : '';
   const tWhen = kst(d.sentAt);
   // 네이버 SEO 기본 가이드 「title 텍스트 길이 확인필요」 — 전체가 80자를 넘으면 상품명만 띄어쓰기 자리에서 줄인다(h1·본문은 전체 이름 그대로)
-  const tTail = ` ${won(d.price)}${tUnit ? ` (${tUnit})` : ''} · ${tWhen ? `${tWhen.mo}/${tWhen.d} ` : ''}${d.mall || ''} 핫딜 - ${SITE}`.replace(/\s+핫딜/, ' 핫딜');
+  const tWhere = [tWhen ? `${tWhen.mo}/${tWhen.d}` : '', d.mall || ''].filter(Boolean).join(' ');
+  const tTail = ` ${won(d.price)}${tUnit ? ` (${tUnit})` : ''}${tWhere ? ` · ${tWhere}` : ''} - ${SITE}`;
   const tRoom = 80 - tTail.length;
   let tName = d.title;
   if (tName.length > tRoom) { const cut = tName.slice(0, tRoom - 1); const sp = cut.lastIndexOf(' '); tName = (sp > tRoom * 0.5 ? cut.slice(0, sp) : cut).replace(/[\s,·/+*(-]+$/, '') + '…'; }
@@ -770,11 +772,11 @@ ${join}
 <h2>${esc(w)} 딜 한눈에 보기</h2>${grid(arr)}`;
   // 11/10 딜 6개 미만 품목은 검색 제외·사이트맵 제외(사람은 그대로 봄) — 얇은 틀 페이지를 대량으로 내지 않는다(네이버 스팸 정책). 기준 6 = 분류(c/) 기준과 같음
   const kThin = arr.length < 6;
-  write(`k/${w}/index.html`, page({ noindex: kThin, ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${w} 핫딜 기록`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) }, title: `${w} 핫딜 가격 기록${usc ? ` (${usc.label} 최저 ${unitWon(uarr[0], usc)})` : ''} - ${SITE}`, desc: `핫딜베스트가 고른 ${w} 핫딜 ${arr.length}건과 날짜별 가격. 가장 낮았던 가격 ${won(min.price)}.` + (usc ? ` ${usc.label} 가장 쌌던 가격 ${unitWon(uarr[0], usc)}.` : ''),
+  write(`k/${w}/index.html`, page({ noindex: kThin, ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${w} 핫딜 기록`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) }, title: `${w} 가격 기록${usc ? ` (${usc.label} 최저 ${unitWon(uarr[0], usc)})` : ''} - ${SITE}`, desc: `핫딜베스트가 고른 ${w} 딜 ${arr.length}개와 날짜별 가격. 가장 낮았던 가격 ${won(min.price)}.` + (usc ? ` ${usc.label} 가장 쌌던 가격 ${unitWon(uarr[0], usc)}.` : ''),
     canon: url('k', w), body, img: min.image, crumbs: [['홈', '/'], ['품목별', '/k/'], [w, url('k', w)]] }));
   if (!kThin) add(url('k', w), kst(arr[0].sentAt).ymd);
 }
-write('k/index.html', page({ title: `품목별 핫딜 기록 - ${SITE}`, desc: '브랜드·품목별로 핫딜베스트가 고른 핫딜과 가격 기록을 모았어요.', canon: '/k/',
+write('k/index.html', page({ title: `품목별 가격 기록 - ${SITE}`, desc: '브랜드·품목별로 핫딜베스트가 고른 딜과 가격 기록을 모았어요.', canon: '/k/',
   crumbs: [['홈', '/'], ['품목별', '/k/']],
   body: `<h1>품목별 핫딜 기록</h1><p class="lead">3번 이상 뜬 브랜드·품목이에요. 누르면 그동안 얼마에 떴는지 볼 수 있어요.</p><ul class="chips">${KW.map(w => `<li><a href="${url('k', w)}">${esc(w)} <em>${byKw[w].length}</em></a></li>`).join('')}</ul>${join}` }));
 add('/k/', kst(deals[0].sentAt).ymd);
@@ -830,11 +832,11 @@ ${monthBox}
 <h2>최근에 뜬 ${esc(c)} 딜 <small>${arr.length}개</small></h2>${grid(arr)}
 ${join}`;
   write(`c/${c}/index.html`, page({ ld: { '@context': 'https://schema.org', '@type': 'ItemList', name: `${c} 핫딜 모음`, numberOfItems: arr.length, itemListElement: arr.slice(0, 50).map((d, i) => ({ '@type': 'ListItem', position: i + 1, url: BASE + dealUrl(d), name: d.title })) },
-    title: `${c} 핫딜 모음 - ${SITE}`, desc: `${c} 핫딜 ${arr.length}개. 쿠팡·지마켓 등에서 다른 곳보다 싸게 뜬 ${c} 가격 기록을 날짜별로 모았어요.`,
+    title: `${c} 딜 모음 - ${SITE}`, desc: `${c} 핫딜 ${arr.length}개. 쿠팡·지마켓 등에서 다른 곳보다 싸게 뜬 ${c} 가격 기록을 날짜별로 모았어요.`,
     canon: url('c', c), body, img: (arr.find(d => d.image) || {}).image, crumbs: [['홈', '/'], ['분류', '/c/'], [c, url('c', c)]] }));
   add(url('c', c), kst(arr[0].sentAt).ymd);
 }
-write('c/index.html', page({ title: `분류별 핫딜 모음 - ${SITE}`, desc: '라면·생수·커피·세제·화장지 등 분류별로 핫딜베스트가 고른 핫딜과 가격 기록을 모았어요.', canon: '/c/',
+write('c/index.html', page({ title: `분류별 딜 모음 - ${SITE}`, desc: '라면·생수·커피·세제·화장지 등 분류별로 핫딜베스트가 고른 딜과 가격 기록을 모았어요.', canon: '/c/',
   crumbs: [['홈', '/'], ['분류', '/c/']],
   body: `<h1>분류별 핫딜 모음</h1><p class="lead">식품·생필품을 분류별로 모았어요. 누르면 그 분류에서 고른 딜을 최근 것부터 볼 수 있어요.</p>
 <ul class="chips">${CATL.map(c => `<li><a href="${url('c', c)}">${esc(c)} <em>${byCat[c].length}</em></a></li>`).join('')}</ul>${sbox()}${join}` }));
@@ -877,7 +879,7 @@ ${join}
 
 // 쇼핑몰별
 for (const m of MALLS) {
-  write(`mall/${m}/index.html`, page({ title: `${m} 핫딜 모음 - ${SITE}`, desc: `핫딜베스트가 고른 ${m} 핫딜 ${byMall[m].length}개를 모았어요.`, canon: url('mall', m),
+  write(`mall/${m}/index.html`, page({ title: `${m} 딜 모음 - ${SITE}`, desc: `핫딜베스트가 고른 ${m} 딜 ${byMall[m].length}개를 모았어요.`, canon: url('mall', m),
     crumbs: [['홈', '/'], [m, url('mall', m)]],
     body: `<h1>${esc(m)} 핫딜 모음</h1><p class="lead">핫딜베스트가 고른 ${esc(m)} 딜, 지금까지 <b>${byMall[m].length}개</b>예요. 최근 것부터 보여 드려요.</p>${grid(byMall[m])}${join}` }));
   add(url('mall', m), kst(byMall[m][0].sentAt).ymd);
@@ -886,7 +888,7 @@ for (const m of MALLS) {
 // 전체 딜 (월별)
 const months = {};
 for (const d of deals) { const t = kst(d.sentAt); const k = `${t.y}-${String(t.mo).padStart(2, '0')}`; (months[k] = months[k] || []).push(d); }
-write('deals/index.html', page({ title: `전체 핫딜 기록 - ${SITE}`, desc: `핫딜베스트가 지금까지 고른 핫딜 ${deals.length}개를 달별로 모았어요.`, canon: '/deals/', crumbs: [['홈', '/'], ['전체 딜', '/deals/']],
+write('deals/index.html', page({ title: `전체 딜 기록 - ${SITE}`, desc: `핫딜베스트가 지금까지 고른 딜 ${deals.length}개를 달별로 모았어요.`, canon: '/deals/', crumbs: [['홈', '/'], ['전체 딜', '/deals/']],
   body: `<h1>전체 핫딜 기록</h1><p class="lead">지금까지 고른 딜, 모두 <b>${deals.length}개</b>예요. 카톡방에는 아침 7시부터 밤 10시까지 보내고, 이 사이트에는 24시간 올려요.</p>` +
     Object.keys(months).sort().reverse().map(k => `<h2>${+k.slice(0, 4)}년 ${+k.slice(5)}월 <small>${months[k].length}개</small></h2>${grid(months[k])}`).join('') + join }));
 add('/deals/', kst(deals[0].sentAt).ymd);
@@ -897,7 +899,7 @@ const POS = [[8, 30, -9], [118, 6, 6], [228, 34, -4], [40, 104, 7], [158, 92, -7
 write('index.html', page({ ld: [
   { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE, alternateName: '핫딜베스트', url: BASE + '/', inLanguage: 'ko',
     potentialAction: { '@type': 'SearchAction', target: BASE + '/search/?q={search_term_string}', 'query-input': 'required name=search_term_string' } },
-  { '@context': 'https://schema.org', '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/', logo: BASE + '/logo.png', sameAs: ['https://hotdeal.best/', 'https://www.youtube.com/@hotdealbest_kr', 'https://www.instagram.com/hotdeal.best/', 'https://www.threads.com/@hotdeal.best', 'https://www.tiktok.com/@hotdealbest_kr'] }], title: `생필품 핫딜, 다른 곳 가격과 비교해 카톡으로 - ${SITE}`, desc: '싸게 뜬 생필품·식품 핫딜을 다른 곳 가격과 비교해서 카카오톡 오픈채팅으로 보내 드려요. 지금까지 보낸 딜과 품목별 가격 기록도 볼 수 있어요.', canon: '/',
+  { '@context': 'https://schema.org', '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/', logo: BASE + '/logo.png', sameAs: ['https://hotdeal.best/', 'https://www.youtube.com/@hotdealbest_kr', 'https://www.instagram.com/hotdeal.best/', 'https://www.threads.com/@hotdeal.best', 'https://www.tiktok.com/@hotdealbest_kr'] }], title: `${SITE} - 생필품 딜을 다른 곳 가격과 비교해 카톡으로`, desc: '싸게 뜬 생필품·식품 핫딜을 다른 곳 가격과 비교해서 카카오톡 오픈채팅으로 보내 드려요. 지금까지 보낸 딜과 품목별 가격 기록도 볼 수 있어요.', canon: '/',
   body: `<section class="hero"><div>
 <span class="badge"><i></i>24시간 업데이트 · 카톡방은 아침 7시 ~ 밤 10시</span>
 <h1>생필품 핫딜, <span class="hl">다른 곳 가격과 비교해서</span> 카톡으로 보내드려요</h1>
@@ -916,7 +918,7 @@ add('/', kst(deals[0].sentAt).ymd);
 
 // 소개 — 누가, 어떤 기준으로 고르는지(네이버 「콘텐츠 작성시 권장 사항」 전문성·투명성, 11/10 사장님 승인). 연락처 줄은 넣지 않음(사장님 결정).
 // 숫자는 지금 돌아가는 기준 그대로: 카톡 20%(run.bat --rate-floor 20) · 사이트 전용 10%(webFloor) · 발송 7~22시. 데이터 출처 이름은 쓰지 않는다
-write('about/index.html', page({ title: `핫딜베스트 소개 · 딜을 고르는 기준 - ${SITE}`, desc: '핫딜베스트는 주식회사 와우플러스가 운영해요. 다른 판매처보다 20% 이상 쌀 때만 카톡방으로 보내고, 확인한 시각의 가격을 기록으로 남겨요.', canon: '/about/',
+write('about/index.html', page({ title: `소개 · 딜을 고르는 기준 - ${SITE}`, desc: '핫딜베스트는 주식회사 와우플러스가 운영해요. 다른 판매처보다 20% 이상 쌀 때만 카톡방으로 보내고, 확인한 시각의 가격을 기록으로 남겨요.', canon: '/about/',
   crumbs: [['홈', '/'], ['소개', '/about/']],
   ld: { '@context': 'https://schema.org', '@type': 'AboutPage', name: `핫딜베스트 소개`, url: BASE + '/about/', publisher: { '@type': 'Organization', name: '주식회사 와우플러스', url: BASE + '/' } },
   body: `<h1>핫딜베스트는 이렇게 골라요</h1>
