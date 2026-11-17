@@ -30,8 +30,11 @@ async function read(name) {
 (async () => {
   const all = JSON.parse(fs.readFileSync(F, 'utf8'));
   let added = 0, promoted = 0, resent = 0;
+  // 내린 딜 (11/17) — 피드에 남아 있어도 다시 들이지 않는다
+  const REMOVED = new Set(Object.keys(JSON.parse(fs.readFileSync(path.join(__dirname, 'removed.json'), 'utf8'))));
+  REMOVED.forEach(id => { delete all[id]; });
   const merge = (it, web) => {
-    if (!it.uid || !it.title || !it.sentAt) return;
+    if (!it.uid || !it.title || !it.sentAt || REMOVED.has(String(it.uid))) return;
     const old = all[it.uid], nu = Object.assign({}, it, web ? { web: true } : {});
     if (!old) { all[it.uid] = nu; added++; return; }
     if (it.sentAt <= old.sentAt) return;

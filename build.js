@@ -16,8 +16,11 @@ const BASE = 'https://deal.hotdeal.best';
 const SITE = '핫딜베스트 카톡방';
 const KAKAO = 'https://open.kakao.com/o/p89h8DIi';
 const OUT = path.resolve(process.argv[2] || path.join(__dirname, 'site'));
+// 내린 딜 (11/17) — removed.json 에 번호를 넣으면 목록·상세·실시간 칸 어디에도 안 나온다
+const REMOVED = Object.keys(JSON.parse(fs.readFileSync(path.join(__dirname, 'removed.json'), 'utf8')));
 const deals = Object.values(JSON.parse(fs.readFileSync(path.join(__dirname, 'archive.json'), 'utf8')))
   .filter(d => d.uid && d.title && d.sentAt)
+  .filter(d => !REMOVED.includes(String(d.uid)))
   // 토스쇼핑은 싣지 않는다. 토스가 2026-08-27 메일로 「상품·가격을 DB 에 쌓아 커머스 사이트처럼 운영」 하는 것을
   // 허용하지 않는다고 알려 왔다. 이 사이트는 딜 기록을 쌓아 목록·상세로 보여 주므로 그 모양에 가깝다.
   .filter(d => d.mall !== '토스쇼핑' && !/toss.(im|shopping)/.test(d.link || ''))
@@ -382,6 +385,7 @@ const liveScript = known => `<script>
 (function () {
   var URL_ = 'https://hotdeal-feed-default-rtdb.asia-southeast1.firebasedatabase.app/feed/items.json?orderBy=%22sentMs%22&limitToLast=20';
   var KNOWN = new Set(${JSON.stringify(known)});
+  var REMOVED = new Set(${JSON.stringify(REMOVED)});
   var box = document.getElementById('recent'); if (!box || !window.EventSource) return;
   var TOP = ${JSON.stringify(Date.parse((deals[0] || {}).sentAt) || 0)};
   var have = new Set([].map.call(box.querySelectorAll('[data-uid]'), function (e) { return e.getAttribute('data-uid'); }));
@@ -405,7 +409,7 @@ const liveScript = known => `<script>
   function apply(data) {
     if (!data) return;
     var list = Array.isArray(data) ? data : (data.uid ? [data] : Object.keys(data).map(function (k) { return data[k]; }));
-    list = list.filter(function (d) { return d && d.uid && d.title && d.mall !== '토스쇼핑' && !/toss\\.(im|shopping)/.test(d.link || '') && !have.has(String(d.uid)) && (d.sentMs || 0) > TOP; })
+    list = list.filter(function (d) { return d && d.uid && d.title && !REMOVED.has(String(d.uid)) && d.mall !== '토스쇼핑' && !/toss\\.(im|shopping)/.test(d.link || '') && !have.has(String(d.uid)) && (d.sentMs || 0) > TOP; })
       .sort(function (a, b) { return (a.sentMs || 0) - (b.sentMs || 0); });
     list.forEach(function (d) { have.add(String(d.uid)); box.insertBefore(card(d), box.firstChild); });
     var tag = document.getElementById('livetag'); if (tag && list.length) tag.textContent = '실시간 · 새 딜 ' + list.length + '건';
@@ -962,7 +966,7 @@ ${CLIENT}
   function ready() { fetch('/deal/' + id + '/', { method: 'HEAD', cache: 'no-store' }).then(function (r) { if (r.ok) location.replace('/deal/' + id + '/'); }).catch(function () {}); }
   ready(); setInterval(ready, 30000);
   function draw(d) {
-    if (!d || !d.uid || d.mall === '토스쇼핑' || /toss\\.(im|shopping)/.test(d.link || '')) { box.innerHTML = '<p class="lead">이 딜은 여기서 보여 드릴 수 없어요. <a href="/">홈으로</a></p>'; return; }
+    if (!d || !d.uid || ${JSON.stringify(REMOVED)}.indexOf(String(d.uid)) >= 0 || d.mall === '토스쇼핑' || /toss\\.(im|shopping)/.test(d.link || '')) { box.innerHTML = '<p class="lead">이 딜은 여기서 보여 드릴 수 없어요. <a href="/">홈으로</a></p>'; return; }
     document.title = d.title + ' ' + won(d.price) + ' 핫딜 - ${SITE}';
     box.innerHTML = dealTop(d) + storyBox(d) + '<p class="note">같은 품목 딜과의 비교, 지난 기록은 몇 분 안에 채워져요. 준비되면 이 화면이 저절로 바뀌어요.</p>';
     var e = box.querySelector('.ago'); if (e) { var m = (Date.now() - Date.parse(e.getAttribute('data-t'))) / 6e4; if (m >= 0) e.textContent = ' · ' + (m < 5 ? '방금 전' : m < 60 ? Math.floor(m) + '분 전' : m < 1440 ? Math.floor(m / 60) + '시간 전' : Math.floor(m / 1440) + '일 전'); }
